@@ -108,7 +108,7 @@ if st.button("Generate Quiz"):
         """
         
         try:
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model=model_options[selected_model],
                 messages=[
                     {"role": "system", "content": prompt},
