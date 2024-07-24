@@ -1,0 +1,6 @@
+streamlit
+openai
+json
+random
+pandas
+openpyxl
