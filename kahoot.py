@@ -95,31 +95,39 @@ def generate_quiz():
                 
                 Text or topic: {text}
                 
-                JSON format:
-                [
-                {{
-                    "question": "Your question here max 120 characters",
-                    "answers": [
-                    {{
-                        "text": "Answer 1 max 75 characters",
-                        "is_correct": false
-                    }},
-                    {{
-                        "text": "Answer 2 max 75 characters",
-                        "is_correct": false
-                    }},
-                    {{
-                        "text": "Answer 3 max 75 characters",
-                        "is_correct": false
-                    }},
-                    {{
-                        "text": "Answer 4 max 75 characters",
-                        "is_correct": true
-                    }}
-                    ]
-                }},
-                ... (repeat for all questions)
-                ]
+JSON format:
+[
+    {
+        "question": "Question text (max 120 characters)",
+        "answers": [
+            {
+                "text": "Answer option 1 (max 75 characters)",
+                "is_correct": false
+            },
+            {
+                "text": "Answer option 2 (max 75 characters)",
+                "is_correct": false
+            },
+            {
+                "text": "Answer option 3 (max 75 characters)",
+                "is_correct": false
+            },
+            {
+                "text": "Answer option 4 (max 75 characters)",
+                "is_correct": true
+            }
+        ]
+    }
+]
+
+Important:
+1. Ensure the JSON is a valid array of question objects.
+2. Each question must have exactly 4 answer options.
+3. Only one answer per question should be marked as correct (is_correct: true).
+4. Do not include any comments or ellipsis (...) in the actual JSON output.
+5. Repeat the structure for each question, up to the specified number of questions.
+6. Ensure the entire response is a valid JSON array.
+
                 """}
             ],
             temperature=0.7,
