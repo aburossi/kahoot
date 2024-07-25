@@ -6,6 +6,7 @@ import pandas as pd
 import openpyxl
 import re
 from io import BytesIO, StringIO
+from tiktoken import encoding_for_model  # Import tiktoken for token counting
 
 # Helper function to save quiz data to Excel
 def save_to_excel(quiz_data):
@@ -39,6 +40,11 @@ def save_to_excel(quiz_data):
     wb.save(output)
     output.seek(0)
     return output
+
+# Function to count tokens
+def count_tokens(text, model_name):
+    enc = encoding_for_model(model_name)
+    return len(enc.encode(text))
 
 st.title("Kahoot Quiz Generator")
 
@@ -98,7 +104,6 @@ with st.expander("Best Practices für die Nutzung dieser App"):
     3. Überprüfen und bearbeiten Sie die generierten Fragen bei Bedarf.
     """)
 
-
 # API Key input
 api_key = st.text_input("OpenAI API Key:", type="password")
 
@@ -134,7 +139,7 @@ def generate_quiz():
         return
 
     client = OpenAI(api_key=api_key)
-    
+
     try:
         response = client.chat.completions.create(
             model=selected_model,
@@ -197,30 +202,36 @@ def generate_quiz():
         )
 
         generated_quiz = response.choices[0].message.content.strip()
-        
+
+        # Count tokens for input and output
+        input_tokens = count_tokens(text_input, selected_model)
+        output_tokens = count_tokens(generated_quiz, selected_model)
+        st.write(f"Input Tokens: {input_tokens}")
+        st.write(f"Output Tokens: {output_tokens}")
+
         try:
             # Attempt to parse the JSON
             quiz_data = json.loads(generated_quiz)
         except json.JSONDecodeError as json_error:
             st.warning(f"Error parsing JSON. Attempting to fix the response.")
-            
+
             # Attempt to fix common JSON issues
             fixed_json = re.sub(r',\s*]', ']', generated_quiz)  # Remove trailing commas
             fixed_json = re.sub(r',\s*}', '}', fixed_json)  # Remove trailing commas in objects
-            
+
             # If the JSON is incomplete, attempt to complete it
             if fixed_json.count('{') > fixed_json.count('}'):
                 fixed_json += '}' * (fixed_json.count('{') - fixed_json.count('}'))
             if fixed_json.count('[') > fixed_json.count(']'):
                 fixed_json += ']' * (fixed_json.count('[') - fixed_json.count(']'))
-            
+
             try:
                 quiz_data = json.loads(fixed_json)
                 st.success("Successfully fixed and parsed the JSON response.")
             except json.JSONDecodeError:
                 st.error(f"Unable to fix JSON parsing error. Raw response:\n{generated_quiz}")
                 return
-        
+
         # Validate and fix the quiz data structure
         valid_quiz_data = []
         for item in quiz_data:
@@ -233,10 +244,10 @@ def generate_quiz():
                     "question": question,
                     "answers": [{"text": ans['text'][:75], "is_correct": ans['is_correct']} for ans in answers]
                 })
-        
+
         if len(valid_quiz_data) != num_questions_selected:
             st.warning(f"Generated {len(valid_quiz_data)} valid questions instead of the requested {num_questions_selected}.")
-        
+
         st.session_state["quiz_data"] = valid_quiz_data
 
         # Expander for editing instructions
@@ -244,14 +255,14 @@ def generate_quiz():
             st.write("""
             You can now edit the generated content. Please note that any questions longer than 120 characters and answers longer than 75 characters will not be accepted by Kahoot.
             """)
-        
+
         # Expander for editing instructions
         with st.expander("Anleitung zur Bearbeitung der generierten Inhalte"):
             st.write("""
             Sie können nun die generierten Inhalte bearbeiten. Beachten Sie dabei, dass alle Fragen, die länger als 120 Zeichen sind, 
             und Antworten, die länger als 75 Zeichen sind, von Kahoot nicht akzeptiert werden.
             """)
-            
+
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
@@ -329,3 +340,8 @@ if "quiz_data" in st.session_state:
             4. Wählen Sie die Importfunktion in Kahoot.
             5. Laden Sie die gerade gespeicherte Excel-Datei hoch.
             """)
+
+# Display input and output token counts if available
+if 'input_tokens' in st.session_state and 'output_tokens' in st.session_state:
+    st.write(f"Input Tokens: {st.session_state['input_tokens']}")
+    st.write(f"Output Tokens: {st.session_state['output_tokens']}")
