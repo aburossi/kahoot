@@ -122,7 +122,7 @@ def generate_quiz():
                 """}
             ],
             temperature=0.9,
-            max_tokens=4095,
+            max_tokens=8095,
             top_p=0.9,
             frequency_penalty=0,
             presence_penalty=0
