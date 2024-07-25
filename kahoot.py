@@ -64,6 +64,8 @@ selected_model = model_options[selected_model_key]
 
 def generate_quiz():
     text = text_input.strip()
+    nudef generate_quiz():
+    text = text_input.strip()
     num_questions_selected = int(num_questions)
     learning_objectives_selected = learning_objectives.strip()
     audience_selected = audience.strip()
@@ -121,8 +123,8 @@ def generate_quiz():
                 ]
                 """}
             ],
-            temperature=0.7,  # Reduced temperature for more consistent output
-            max_tokens=4000,  # Adjusted max tokens
+            temperature=0.7,
+            max_tokens=4000,
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0
@@ -173,6 +175,7 @@ def generate_quiz():
             
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
+
 
 
 # Generate button
