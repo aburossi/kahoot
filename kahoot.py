@@ -1,5 +1,5 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import json
 import random
 import pandas as pd
@@ -51,13 +51,13 @@ learning_objectives = st.text_input("Learning Objectives:")
 audience = st.text_input("Audience:")
 
 # Number of questions dropdown
-num_questions = st.selectbox("Number of questions:", [str(i) for i in range(0, 13)])
+num_questions = st.selectbox("Number of questions:", [str(i) for i in range(1, 13)])
 
 # GPT Model selection dropdown
 model_options = {
-    "gpt-4o-mini (Cheapest & Fastest)": "gpt-4o-mini",
-    "gpt-4o": "gpt-4",
-    "gpt-4-turbo (Best & Most Expensive)": "gpt-4-turbo"
+    "gpt-3.5-turbo (Cheapest & Fastest)": "gpt-3.5-turbo",
+    "gpt-4": "gpt-4",
+    "gpt-4-turbo-preview (Best & Most Expensive)": "gpt-4-turbo-preview"
 }
 selected_model_key = st.selectbox("Select GPT Model:", list(model_options.keys()))
 selected_model = model_options[selected_model_key]
@@ -72,14 +72,15 @@ def generate_quiz():
         st.error("API Key cannot be empty")
         return
 
-    openai.api_key = api_key
+    client = OpenAI(api_key=api_key)
     
     try:
-        response = openai.Completion.create(
+        response = client.chat.completions.create(
             model=selected_model,
-            prompt=f"""
-                You are specialized in generating custom quizzes for the Kahoot platform. 
-                Your task is to create a quiz based on the given text or topic. 
+            messages=[
+                {"role": "system", "content": "You are specialized in generating custom quizzes for the Kahoot platform."},
+                {"role": "user", "content": f"""
+                Create a quiz based on the given text or topic. 
                 Create questions and four potential answers for each question. 
                 Ensure that each question does not exceed 120 characters 
                 VERY IMPORTANT: Ensure each answer remains within 75 characters. 
@@ -90,6 +91,9 @@ def generate_quiz():
                 4. Generate exactly {num_questions_selected} questions.
                 5. Learning Objectives: {learning_objectives_selected}
                 6. Audience: {audience_selected}
+                
+                Text or topic: {text}
+                
                 JSON format:
                 [
                 {{
@@ -109,13 +113,14 @@ def generate_quiz():
                     }},
                     {{
                         "text": "Answer 4 max 75 characters",
-                        "is_correct": false
+                        "is_correct": true
                     }}
                     ]
                 }},
                 ... (repeat for all questions)
                 ]
-            """,
+                """}
+            ],
             temperature=0.9,
             max_tokens=4095,
             top_p=0.9,
@@ -123,7 +128,7 @@ def generate_quiz():
             presence_penalty=0
         )
 
-        generated_quiz = response.choices[0].text.strip()
+        generated_quiz = response.choices[0].message.content.strip()
         
         try:
             quiz_data = json.loads(generated_quiz)
