@@ -61,74 +61,91 @@ model_options = {
 }
 selected_model = st.selectbox("Select GPT Model:", list(model_options.keys()))
 
-# Generate button
-if st.button("Generate Quiz"):
+def generate_quiz():
+    text = text_input.strip()
+    num_questions_selected = num_questions
+    learning_objectives_selected = learning_objectives.strip()
+    audience_selected = audience.strip()
+    selected_model = model_options[selected_model]
+    
     if not api_key:
         st.error("API Key cannot be empty")
-    else:
-        openai.api_key = api_key
-        prompt = f"""
-            You are specialized in generating custom quizzes for the Kahoot platform. 
-            Your task is to create a quiz based on the given text or topic. 
-            Create questions and four potential answers for each question. 
-            Ensure that each question does not exceed 120 characters 
-            VERY IMPORTANT: Ensure each answer remains within 75 characters. 
-            Follow these rules strictly:
-            1. Generate questions about the provided text or topic.
-            2. Create questions and answers in the same language as the input text.
-            3. Provide output in the specified JSON format.
-            4. Generate exactly {num_questions} questions.
-            5. Learning Objectives: {learning_objectives}
-            6. Audience: {audience}
-            JSON format:
-            [
-            {{
-                "question": "Your question here max 120 characters",
-                "answers": [
-                {{
-                    "text": "Answer 1 max 75 characters",
-                    "is_correct": false
-                }},
-                {{
-                    "text": "Answer 2 max 75 characters",
-                    "is_correct": false
-                }},
-                {{
-                    "text": "Answer 3 max 75 characters",
-                    "is_correct": false
-                }},
-                {{
-                    "text": "Answer 4 max 75 characters",
-                    "is_correct": false
-                }}
-                ]
-            }},
-            ... (repeat for all questions)
-            ]
-        """
+        return
+
+    openai.api_key = api_key
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model=selected_model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": f"""
+                        You are specialized in generating custom quizzes for the Kahoot platform. 
+                        Your task is to create a quiz based on the given text or topic. 
+                        Create questions and four potential answers for each question. 
+                        Ensure that each question does not exceed 120 characters 
+                        VERY IMPORTANT: Ensure each answer remains within 75 characters. 
+                        Follow these rules strictly:
+                        1. Generate questions about the provided text or topic.
+                        2. Create questions and answers in the same language as the input text.
+                        3. Provide output in the specified JSON format.
+                        4. Generate exactly {num_questions_selected} questions.
+                        5. Learning Objectives: {learning_objectives_selected}
+                        6. Audience: {audience_selected}
+                        JSON format:
+                        [
+                        {{
+                            "question": "Your question here max 120 characters",
+                            "answers": [
+                            {{
+                                "text": "Answer 1 max 75 characters",
+                                "is_correct": false
+                            }},
+                            {{
+                                "text": "Answer 2 max 75 characters",
+                                "is_correct": false
+                            }},
+                            {{
+                                "text": "Answer 3 max 75 characters",
+                                "is_correct": false
+                            }},
+                            {{
+                                "text": "Answer 4 max 75 characters",
+                                "is_correct": false
+                            }}
+                            ]
+                        }},
+                        ... (repeat for all questions)
+                        ]
+                    """
+                },
+                {
+                    "role": "user",
+                    "content": text
+                }
+            ],
+            temperature=0.9,
+            max_tokens=4095,
+            top_p=0.9,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
+
+        generated_quiz = response.choices[0].message.content
         
         try:
-            response = openai.ChatCompletion.create(
-                model=model_options[selected_model],
-                messages=[
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": text_input}
-                ],
-                temperature=0.9,
-                max_tokens=4095,
-                top_p=0.9,
-                frequency_penalty=0,
-                presence_penalty=0
-            )
-            generated_quiz = response.choices[0].message["content"]
+            quiz_data = json.loads(generated_quiz)
+            st.session_state["quiz_data"] = quiz_data
+        except json.JSONDecodeError as json_error:
+            st.error(f"Error parsing JSON: {str(json_error)}\n\nRaw response:\n{generated_quiz}")
+            
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
 
-            try:
-                quiz_data = json.loads(generated_quiz)
-                st.session_state["quiz_data"] = quiz_data
-            except json.JSONDecodeError as json_error:
-                st.error(f"Error parsing JSON: {str(json_error)}\n\nRaw response:\n{generated_quiz}")
-        except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
+# Generate button
+if st.button("Generate Quiz"):
+    generate_quiz()
 
 # Edit and Save Quiz Data
 if "quiz_data" in st.session_state:
