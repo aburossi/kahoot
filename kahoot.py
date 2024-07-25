@@ -202,6 +202,12 @@ def generate_quiz():
             st.warning(f"Generated {len(valid_quiz_data)} valid questions instead of the requested {num_questions_selected}.")
         
         st.session_state["quiz_data"] = valid_quiz_data
+
+        with st.expander("Anleitung zur Bearbeitung der generierten Inhalte"):
+            st.write("""
+            Sie können nun die generierten Inhalte bearbeiten. Beachten Sie dabei, dass alle Fragen, die länger als 120 Zeichen sind, 
+            und Antworten, die länger als 75 Zeichen sind, von Kahoot nicht akzeptiert werden.
+            """)
             
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
