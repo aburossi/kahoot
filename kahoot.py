@@ -4,6 +4,7 @@ import json
 import random
 import pandas as pd
 import openpyxl
+import re
 
 # Helper function to save quiz data to Excel
 def save_to_excel(quiz_data, file_name):
