@@ -5,9 +5,11 @@ import random
 import pandas as pd
 import openpyxl
 import re
+from io import BytesIO, StringIO
 
 # Helper function to save quiz data to Excel
-def save_to_excel(quiz_data, file_name):
+def save_to_excel(quiz_data):
+    output = BytesIO()
     wb = openpyxl.Workbook()
     sheet = wb.active
 
@@ -34,7 +36,9 @@ def save_to_excel(quiz_data, file_name):
         ]
         sheet.append(row)
 
-    wb.save(file_name)
+    wb.save(output)
+    output.seek(0)
+    return output
 
 # Streamlit app
 st.title("Kahoot Quiz Generator")
@@ -182,8 +186,6 @@ def generate_quiz():
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
-
-
 # Generate button
 if st.button("Generate Quiz"):
     generate_quiz()
@@ -200,7 +202,6 @@ if "quiz_data" in st.session_state:
             st.checkbox(f"Correct Answer {idx+1}-{answer_idx+1}", value=answer["is_correct"], key=f"correct_{idx}_{answer_idx}")
 
     if st.button("Save as JSON"):
-        file_name = st.text_input("Enter file name for JSON:", value="quiz.json")
         quiz_data = [
             {
                 "question": st.session_state[f"question_{idx}"],
@@ -212,12 +213,16 @@ if "quiz_data" in st.session_state:
                 ]
             } for idx in range(len(quiz_data))
         ]
-        with open(file_name, 'w') as json_file:
-            json.dump(quiz_data, json_file, indent=4)
-        st.success(f"Quiz saved to {file_name}")
+        json_data = json.dumps(quiz_data, indent=4)
+        json_buffer = StringIO(json_data)
+        st.download_button(
+            label="Download JSON",
+            data=json_buffer,
+            file_name="quiz.json",
+            mime="application/json"
+        )
 
     if st.button("Save as Excel"):
-        file_name = st.text_input("Enter file name for Excel:", value="quiz.xlsx")
         quiz_data = [
             {
                 "question": st.session_state[f"question_{idx}"],
@@ -229,5 +234,10 @@ if "quiz_data" in st.session_state:
                 ]
             } for idx in range(len(quiz_data))
         ]
-        save_to_excel(quiz_data, file_name)
-        st.success(f"Quiz saved to {file_name}")
+        excel_buffer = save_to_excel(quiz_data)
+        st.download_button(
+            label="Download Excel",
+            data=excel_buffer,
+            file_name="quiz.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
