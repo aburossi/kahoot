@@ -43,6 +43,26 @@ def save_to_excel(quiz_data):
 # Streamlit app
 st.title("Kahoot Quiz Generator")
 
+# Explanation button with expander
+with st.expander("How to Get an API Key from OpenAI"):
+    st.write("""
+    Um einen API-Schlüssel von OpenAI zu erhalten, folgen Sie diesen Schritten:
+
+    **Registrierung:** Gehen Sie auf die OpenAI-Website und registrieren Sie sich für ein Konto, falls Sie noch keines haben.
+
+    **Anmelden:** Melden Sie sich mit Ihren Anmeldedaten an.
+
+    **API-Schlüssel erstellen:**
+
+    1. Navigieren Sie zu Ihrem Benutzerprofil, indem Sie oben rechts auf Ihr Profilbild klicken.
+    2. Wählen Sie im Dropdown-Menü die Option "API Keys" (API-Schlüssel) oder gehen Sie direkt zu den API-Einstellungen.
+    3. Neuen Schlüssel erstellen: Klicken Sie auf die Schaltfläche „New API Key“ (Neuen API-Schlüssel erstellen).
+
+    **Schlüsselbenennung:** Geben Sie dem Schlüssel einen Namen, um ihn später leicht identifizieren zu können, und bestätigen Sie die Erstellung.
+
+    **Speicherung:** Kopieren Sie den generierten API-Schlüssel und speichern Sie ihn an einem sicheren Ort. Dieser Schlüssel wird nur einmal angezeigt, und Sie benötigen ihn für die Integration der API in Ihre Anwendung.
+    """)
+
 # API Key input
 api_key = st.text_input("OpenAI API Key:", type="password")
 
