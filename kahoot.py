@@ -320,3 +320,12 @@ if "quiz_data" in st.session_state:
             4. Choose the import function in Kahoot.
             5. Upload the Excel file you just saved.
             """)
+        # Expander for next steps
+        with st.expander("Nächste Schritte"):
+            st.write("""
+            1. Speichern Sie die Excel-Datei.
+            2. Erstellen Sie ein neues Kahoot-Quiz.
+            3. Fügen Sie eine neue Frage hinzu.
+            4. Wählen Sie die Importfunktion in Kahoot.
+            5. Laden Sie die gerade gespeicherte Excel-Datei hoch.
+            """)
