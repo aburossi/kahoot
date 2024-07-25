@@ -75,56 +75,47 @@ def generate_quiz():
     openai.api_key = api_key
     
     try:
-        response = openai.ChatCompletion.create(
+        response = openai.Completion.create(
             model=selected_model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": f"""
-                        You are specialized in generating custom quizzes for the Kahoot platform. 
-                        Your task is to create a quiz based on the given text or topic. 
-                        Create questions and four potential answers for each question. 
-                        Ensure that each question does not exceed 120 characters 
-                        VERY IMPORTANT: Ensure each answer remains within 75 characters. 
-                        Follow these rules strictly:
-                        1. Generate questions about the provided text or topic.
-                        2. Create questions and answers in the same language as the input text.
-                        3. Provide output in the specified JSON format.
-                        4. Generate exactly {num_questions_selected} questions.
-                        5. Learning Objectives: {learning_objectives_selected}
-                        6. Audience: {audience_selected}
-                        JSON format:
-                        [
-                        {{
-                            "question": "Your question here max 120 characters",
-                            "answers": [
-                            {{
-                                "text": "Answer 1 max 75 characters",
-                                "is_correct": false
-                            }},
-                            {{
-                                "text": "Answer 2 max 75 characters",
-                                "is_correct": false
-                            }},
-                            {{
-                                "text": "Answer 3 max 75 characters",
-                                "is_correct": false
-                            }},
-                            {{
-                                "text": "Answer 4 max 75 characters",
-                                "is_correct": false
-                            }}
-                            ]
-                        }},
-                        ... (repeat for all questions)
-                        ]
-                    """
-                },
-                {
-                    "role": "user",
-                    "content": text
-                }
-            ],
+            prompt=f"""
+                You are specialized in generating custom quizzes for the Kahoot platform. 
+                Your task is to create a quiz based on the given text or topic. 
+                Create questions and four potential answers for each question. 
+                Ensure that each question does not exceed 120 characters 
+                VERY IMPORTANT: Ensure each answer remains within 75 characters. 
+                Follow these rules strictly:
+                1. Generate questions about the provided text or topic.
+                2. Create questions and answers in the same language as the input text.
+                3. Provide output in the specified JSON format.
+                4. Generate exactly {num_questions_selected} questions.
+                5. Learning Objectives: {learning_objectives_selected}
+                6. Audience: {audience_selected}
+                JSON format:
+                [
+                {{
+                    "question": "Your question here max 120 characters",
+                    "answers": [
+                    {{
+                        "text": "Answer 1 max 75 characters",
+                        "is_correct": false
+                    }},
+                    {{
+                        "text": "Answer 2 max 75 characters",
+                        "is_correct": false
+                    }},
+                    {{
+                        "text": "Answer 3 max 75 characters",
+                        "is_correct": false
+                    }},
+                    {{
+                        "text": "Answer 4 max 75 characters",
+                        "is_correct": false
+                    }}
+                    ]
+                }},
+                ... (repeat for all questions)
+                ]
+            """,
             temperature=0.9,
             max_tokens=4095,
             top_p=0.9,
@@ -132,7 +123,7 @@ def generate_quiz():
             presence_penalty=0
         )
 
-        generated_quiz = response.choices[0].message["content"]
+        generated_quiz = response.choices[0].text.strip()
         
         try:
             quiz_data = json.loads(generated_quiz)
