@@ -62,7 +62,13 @@ with st.expander("How to Get an API Key from OpenAI"):
     **Storage:** Copy the generated API key and store it in a secure place. This key will only be shown once, and you will need it to integrate the API into your application.
     """)
 
-
+# Expander for best practices
+with st.expander("Best Practices for Using This App"):
+    st.write("""
+    1. Use clear and concise topics or texts.
+    2. Specify the desired number of questions.
+    3. Review and edit the generated questions if needed.
+    """)
 
 # Explanation button with expander for API key instructions
 with st.expander("Wie man einen API-Schlüssel von OpenAI erhält"):
@@ -82,14 +88,6 @@ with st.expander("Wie man einen API-Schlüssel von OpenAI erhält"):
     **Schlüsselbenennung:** Geben Sie dem Schlüssel einen Namen, um ihn später leicht identifizieren zu können, und bestätigen Sie die Erstellung.
 
     **Speicherung:** Kopieren Sie den generierten API-Schlüssel und speichern Sie ihn an einem sicheren Ort. Dieser Schlüssel wird nur einmal angezeigt, und Sie benötigen ihn für die Integration der API in Ihre Anwendung.
-    """)
-
-# Expander for best practices
-with st.expander("Best Practices for Using This App"):
-    st.write("""
-    1. Use clear and concise topics or texts.
-    2. Specify the desired number of questions.
-    3. Review and edit the generated questions if needed.
     """)
 
 # Expander for best practices
