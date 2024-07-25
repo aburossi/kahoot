@@ -40,15 +40,36 @@ def save_to_excel(quiz_data):
     output.seek(0)
     return output
 
-# Streamlit app
 st.title("Kahoot Quiz Generator")
 
-# Explanation button with expander
+# Explanation button with expander for API key instructions
 with st.expander("How to Get an API Key from OpenAI"):
+    st.write("""
+    To obtain an API key from OpenAI, follow these steps:
+
+    **Registration:** Go to the [OpenAI website](https://www.openai.com) and register for an account if you don't have one already.
+
+    **Login:** Log in with your credentials.
+
+    **Create an API Key:**
+
+    1. Navigate to your user profile by clicking on your profile picture in the top right corner.
+    2. Select the "API Keys" option from the dropdown menu or go directly to the API settings using this [link](https://platform.openai.com/api-keys).
+    3. Create a new key: Click the "New API Key" button.
+
+    **Key Naming:** Give the key a name to easily identify it later and confirm the creation.
+
+    **Storage:** Copy the generated API key and store it in a secure place. This key will only be shown once, and you will need it to integrate the API into your application.
+    """)
+
+
+
+# Explanation button with expander for API key instructions
+with st.expander("Wie man einen API-Schlüssel von OpenAI erhält"):
     st.write("""
     Um einen API-Schlüssel von OpenAI zu erhalten, folgen Sie diesen Schritten:
 
-    **Registrierung:** Gehen Sie auf die OpenAI-Website und registrieren Sie sich für ein Konto, falls Sie noch keines haben.
+    **Registrierung:** Gehen Sie auf die [OpenAI-Website](https://www.openai.com) und registrieren Sie sich für ein Konto, falls Sie noch keines haben.
 
     **Anmelden:** Melden Sie sich mit Ihren Anmeldedaten an.
 
@@ -62,6 +83,8 @@ with st.expander("How to Get an API Key from OpenAI"):
 
     **Speicherung:** Kopieren Sie den generierten API-Schlüssel und speichern Sie ihn an einem sicheren Ort. Dieser Schlüssel wird nur einmal angezeigt, und Sie benötigen ihn für die Integration der API in Ihre Anwendung.
     """)
+
+
 
 # API Key input
 api_key = st.text_input("OpenAI API Key:", type="password")
@@ -203,6 +226,13 @@ def generate_quiz():
         
         st.session_state["quiz_data"] = valid_quiz_data
 
+        # Expander for editing instructions
+        with st.expander("Instructions for Editing the Generated Content"):
+            st.write("""
+            You can now edit the generated content. Please note that any questions longer than 120 characters and answers longer than 75 characters will not be accepted by Kahoot.
+            """)
+        
+        # Expander for editing instructions
         with st.expander("Anleitung zur Bearbeitung der generierten Inhalte"):
             st.write("""
             Sie können nun die generierten Inhalte bearbeiten. Beachten Sie dabei, dass alle Fragen, die länger als 120 Zeichen sind, 
