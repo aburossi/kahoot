@@ -94,30 +94,30 @@ def generate_quiz():
                 6. Audience: {audience_selected}
                 
                 Text or topic: {text}
-                
+                                
                 JSON format:
                 [
-                    {
+                    {{
                         "question": "Question text (max 120 characters)",
                         "answers": [
-                            {
+                            {{
                                 "text": "Answer option 1 (max 75 characters)",
                                 "is_correct": false
-                            },
-                            {
+                            }},
+                            {{
                                 "text": "Answer option 2 (max 75 characters)",
                                 "is_correct": false
-                            },
-                            {
+                            }},
+                            {{
                                 "text": "Answer option 3 (max 75 characters)",
                                 "is_correct": false
-                            },
-                            {
+                            }},
+                            {{
                                 "text": "Answer option 4 (max 75 characters)",
                                 "is_correct": true
-                            }
+                            }}
                         ]
-                    }
+                    }}
                 ]
                 
                 Important:
