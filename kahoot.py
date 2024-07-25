@@ -59,15 +59,15 @@ model_options = {
     "gpt-4o": "gpt-4",
     "gpt-4-turbo (Best & Most Expensive)": "gpt-4-turbo"
 }
-selected_model = st.selectbox("Select GPT Model:", list(model_options.keys()))
+selected_model_key = st.selectbox("Select GPT Model:", list(model_options.keys()))
+selected_model = model_options[selected_model_key]
 
 def generate_quiz():
     text = text_input.strip()
     num_questions_selected = num_questions
     learning_objectives_selected = learning_objectives.strip()
     audience_selected = audience.strip()
-    selected_model = model_options[selected_model]
-    
+
     if not api_key:
         st.error("API Key cannot be empty")
         return
@@ -132,7 +132,7 @@ def generate_quiz():
             presence_penalty=0
         )
 
-        generated_quiz = response.choices[0].message.content
+        generated_quiz = response.choices[0].message["content"]
         
         try:
             quiz_data = json.loads(generated_quiz)
