@@ -84,6 +84,21 @@ with st.expander("Wie man einen API-Schlüssel von OpenAI erhält"):
     **Speicherung:** Kopieren Sie den generierten API-Schlüssel und speichern Sie ihn an einem sicheren Ort. Dieser Schlüssel wird nur einmal angezeigt, und Sie benötigen ihn für die Integration der API in Ihre Anwendung.
     """)
 
+# Expander for best practices
+with st.expander("Best Practices for Using This App"):
+    st.write("""
+    1. Use clear and concise topics or texts.
+    2. Specify the desired number of questions.
+    3. Review and edit the generated questions if needed.
+    """)
+
+# Expander for best practices
+with st.expander("Best Practices für die Nutzung dieser App"):
+    st.write("""
+    1. Verwenden Sie klare und prägnante Themen oder Texte.
+    2. Geben Sie die gewünschte Anzahl von Fragen an.
+    3. Überprüfen und bearbeiten Sie die generierten Fragen bei Bedarf.
+    """)
 
 
 # API Key input
@@ -297,3 +312,13 @@ if "quiz_data" in st.session_state:
             file_name="quiz.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+        # Expander for next steps
+        with st.expander("Next Steps"):
+            st.write("""
+            1. Save the Excel File.
+            2. Create a new Kahoot quiz.
+            3. Add a new question.
+            4. Choose the import function in Kahoot.
+            5. Upload the Excel file you just saved.
+            """)
