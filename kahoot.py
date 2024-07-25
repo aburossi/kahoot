@@ -64,8 +64,6 @@ selected_model = model_options[selected_model_key]
 
 def generate_quiz():
     text = text_input.strip()
-    nudef generate_quiz():
-    text = text_input.strip()
     num_questions_selected = int(num_questions)
     learning_objectives_selected = learning_objectives.strip()
     audience_selected = audience.strip()
