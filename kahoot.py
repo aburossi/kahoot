@@ -24,7 +24,7 @@ def save_to_excel(quiz_data):
 
         if correct_index is None:
             st.error("No correct answer specified for a question.")
-            return output
+            return
 
         row = [
             question['question'],
