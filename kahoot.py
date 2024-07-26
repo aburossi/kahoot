@@ -140,6 +140,50 @@ def generate_quiz():
 
     client = OpenAI(api_key=api_key)
 
+    # Count input tokens before sending to OpenAI
+    input_text = f"""
+    Create a quiz based on the given text or topic. 
+    Create questions and four potential answers for each question. 
+    Ensure that each question does not exceed 120 characters 
+    VERY IMPORTANT: Ensure each answer remains within 75 characters. 
+    Follow these rules strictly:
+    1. Generate questions about the provided text or topic.
+    2. Create questions and answers in the same language as the input text.
+    3. Provide output in the specified JSON format.
+    4. Generate exactly {num_questions_selected} questions.
+    5. Learning Objectives: {learning_objectives_selected}
+    6. Audience: {audience_selected}
+    
+    Text or topic: {text}
+    """
+    input_tokens = count_tokens(input_text, selected_model)
+    st.write(f"Input Tokens: {input_tokens}")
+    
+    # Estimate output tokens (this is a rough estimate)
+    estimated_output_tokens = input_tokens * 1.5  # Adjust this multiplier as needed
+    st.write(f"Estimated Output Tokens: {int(estimated_output_tokens)}")
+
+    try:
+        response = client.chat.completions.create(
+            model=selected_model,
+            messages=[
+                {"role": "system", "content": "You are specialized in generating custom quizzes for the Kahoot platform."},
+                {"role": "user", "content": input_text}
+            ],
+            temperature=0.7,
+            max_tokens=4000,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
+
+        generated_quiz = response.choices[0].message.content.strip()
+
+        # Count actual output tokens
+        output_tokens = count_tokens(generated_quiz, selected_model)
+        st.write(f"Actual Output Tokens: {output_tokens}")
+
+
     try:
         response = client.chat.completions.create(
             model=selected_model,
@@ -276,9 +320,16 @@ if "quiz_data" in st.session_state:
 
     st.write("Edit Quiz Data:")
     for idx, question in enumerate(quiz_data):
-        st.text_input(f"Question {idx+1}", value=question["question"], key=f"question_{idx}")
+        question_text = st.text_input(f"**Question {idx+1}**", value=question["question"], key=f"question_{idx}")
+        char_count = len(question_text)
+        color = "red" if char_count > 120 else "green"
+        st.markdown(f'<p style="color:{color};">Character count: {char_count}/120</p>', unsafe_allow_html=True)
+        
         for answer_idx, answer in enumerate(question["answers"]):
-            st.text_input(f"Answer {idx+1}-{answer_idx+1}", value=answer["text"], key=f"answer_{idx}_{answer_idx}")
+            answer_text = st.text_input(f"Answer {idx+1}-{answer_idx+1}", value=answer["text"], key=f"answer_{idx}_{answer_idx}")
+            char_count = len(answer_text)
+            color = "red" if char_count > 75 else "green"
+            st.markdown(f'<p style="color:{color};">Character count: {char_count}/75</p>', unsafe_allow_html=True)
             st.checkbox(f"Correct Answer {idx+1}-{answer_idx+1}", value=answer["is_correct"], key=f"correct_{idx}_{answer_idx}")
 
     if st.button("Save as JSON"):
