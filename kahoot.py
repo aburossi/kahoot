@@ -24,7 +24,7 @@ def save_to_excel(quiz_data):
 
         if correct_index is None:
             st.error("No correct answer specified for a question.")
-            return
+            return None
 
         row = [
             question['question'],
@@ -136,8 +136,6 @@ def generate_and_process_quiz(client, input_text, selected_model, num_questions_
 # Streamlit UI
 st.title("Kahoot Quiz Generator")
 
-# ... (Keep all the UI elements and explanations as they were)
-
 # API Key input
 api_key = st.text_input("OpenAI API Key:", type="password")
 
@@ -164,85 +162,86 @@ selected_model = model_options[selected_model_key]
 
 # Estimate Tokens and Cost button
 if st.button("Estimate Tokens and Cost"):
-    text = text_input.strip()
-    num_questions_selected = int(num_questions)
-    learning_objectives_selected = learning_objectives.strip()
-    audience_selected = audience.strip()
+    if not text_input.strip():
+        st.error("Please enter a text or topic.")
+    else:
+        # Prepare input text
+        input_text = f"""
+        Create a quiz based on the given text or topic. 
+        Create questions and four potential answers for each question. 
+        Ensure that each question does not exceed 120 characters 
+        VERY IMPORTANT: Ensure each answer remains within 75 characters. 
+        Follow these rules strictly:
+        1. Generate questions about the provided text or topic.
+        2. Create questions and answers in the same language as the input text.
+        3. Provide output in the specified JSON format.
+        4. Generate exactly {num_questions} questions.
+        5. Learning Objectives: {learning_objectives}
+        6. Audience: {audience}
+        
+        Text or topic: {text_input}
+                        
+        JSON format:
+        [
+            {{
+                "question": "Question text (max 120 characters)",
+                "answers": [
+                    {{
+                        "text": "Answer option 1 (max 75 characters)",
+                        "is_correct": false
+                    }},
+                    {{
+                        "text": "Answer option 2 (max 75 characters)",
+                        "is_correct": false
+                    }},
+                    {{
+                        "text": "Answer option 3 (max 75 characters)",
+                        "is_correct": false
+                    }},
+                    {{
+                        "text": "Answer option 4 (max 75 characters)",
+                        "is_correct": true
+                    }}
+                ]
+            }}
+        ]
+        
+        Important:
+        1. Ensure the JSON is a valid array of question objects.
+        2. Each question must have exactly 4 answer options.
+        3. Only one answer per question should be marked as correct (is_correct: true).
+        4. Do not include any comments or ellipsis (...) in the actual JSON output.
+        5. Repeat the structure for each question, up to the specified number of questions.
+        6. Ensure the entire response is a valid JSON array.
+        """
 
-    # Prepare input text
-    input_text = f"""
-    Create a quiz based on the given text or topic. 
-    Create questions and four potential answers for each question. 
-    Ensure that each question does not exceed 120 characters 
-    VERY IMPORTANT: Ensure each answer remains within 75 characters. 
-    Follow these rules strictly:
-    1. Generate questions about the provided text or topic.
-    2. Create questions and answers in the same language as the input text.
-    3. Provide output in the specified JSON format.
-    4. Generate exactly {num_questions_selected} questions.
-    5. Learning Objectives: {learning_objectives_selected}
-    6. Audience: {audience_selected}
-    
-    Text or topic: {text}
-                    
-    JSON format:
-    [
-        {{
-            "question": "Question text (max 120 characters)",
-            "answers": [
-                {{
-                    "text": "Answer option 1 (max 75 characters)",
-                    "is_correct": false
-                }},
-                {{
-                    "text": "Answer option 2 (max 75 characters)",
-                    "is_correct": false
-                }},
-                {{
-                    "text": "Answer option 3 (max 75 characters)",
-                    "is_correct": false
-                }},
-                {{
-                    "text": "Answer option 4 (max 75 characters)",
-                    "is_correct": true
-                }}
-            ]
-        }}
-    ]
-    
-    Important:
-    1. Ensure the JSON is a valid array of question objects.
-    2. Each question must have exactly 4 answer options.
-    3. Only one answer per question should be marked as correct (is_correct: true).
-    4. Do not include any comments or ellipsis (...) in the actual JSON output.
-    5. Repeat the structure for each question, up to the specified number of questions.
-    6. Ensure the entire response is a valid JSON array.
-    """
+        input_tokens, estimated_output_tokens, estimated_cost = estimate_tokens_and_cost(input_text, selected_model)
+        
+        st.write(f"Estimated Input Tokens: {input_tokens}")
+        st.write(f"Estimated Output Tokens: {estimated_output_tokens}")
+        st.write(f"Estimated Cost: ${estimated_cost:.6f}")
 
-    input_tokens, estimated_output_tokens, estimated_cost = estimate_tokens_and_cost(input_text, selected_model)
-    
-    st.write(f"Estimated Input Tokens: {input_tokens}")
-    st.write(f"Estimated Output Tokens: {estimated_output_tokens}")
-    st.write(f"Estimated Cost: ${estimated_cost:.6f}")
-
-    st.session_state['estimated_input_tokens'] = input_tokens
-    st.session_state['estimated_output_tokens'] = estimated_output_tokens
-    st.session_state['estimated_cost'] = estimated_cost
+        st.session_state['estimated_input_tokens'] = input_tokens
+        st.session_state['estimated_output_tokens'] = estimated_output_tokens
+        st.session_state['estimated_cost'] = estimated_cost
+        st.session_state['input_text'] = input_text
 
 # Generate Quiz button
 if st.button("Generate Quiz"):
-    if 'estimated_cost' in st.session_state:
-        st.write(f"Estimated Cost: ${st.session_state['estimated_cost']:.6f}")
-        if st.button("Confirm and Generate"):
-            if not api_key:
-                st.error("API Key cannot be empty")
-            else:
-                client = OpenAI(api_key=api_key)
-                quiz_data = generate_and_process_quiz(client, input_text, selected_model, int(num_questions))
-                if quiz_data:
-                    st.session_state["quiz_data"] = quiz_data
-    else:
+    if not api_key:
+        st.error("API Key cannot be empty")
+    elif 'estimated_cost' not in st.session_state:
         st.warning("Please estimate tokens and cost first.")
+    else:
+        st.write(f"Estimated Cost: ${st.session_state['estimated_cost']:.6f}")
+        client = OpenAI(api_key=api_key)
+        
+        quiz_data = generate_and_process_quiz(client, st.session_state['input_text'], selected_model, int(num_questions))
+        if quiz_data:
+            st.session_state["quiz_data"] = quiz_data
+            st.success("Quiz generated successfully!")
+        else:
+            st.error("Failed to generate quiz. Please try again.")
 
 # Edit and Save Quiz Data
 if "quiz_data" in st.session_state:
