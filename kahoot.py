@@ -1,3 +1,133 @@
+import streamlit as st
+from openai import OpenAI
+import json
+import random
+import pandas as pd
+import openpyxl
+import re
+from io import BytesIO, StringIO
+from tiktoken import encoding_for_model  # Import tiktoken for token counting
+
+# Helper function to save quiz data to Excel
+def save_to_excel(quiz_data):
+    output = BytesIO()
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+
+    header = ["Question", "Answer 1", "Answer 2", "Answer 3", "Answer 4", "Time", "Correct"]
+    sheet.append(header)
+
+    for question in quiz_data:
+        answers = question['answers']
+        random.shuffle(answers)  # Randomize the order of answers
+        correct_index = next((i for i, ans in enumerate(answers) if ans['is_correct']), None)
+
+        if correct_index is None:
+            st.error("No correct answer specified for a question.")
+            return
+
+        row = [
+            question['question'],
+            answers[0]['text'],
+            answers[1]['text'],
+            answers[2]['text'],
+            answers[3]['text'],
+            "20",  # Default time
+            correct_index + 1  # +1 because Excel is 1-indexed
+        ]
+        sheet.append(row)
+
+    wb.save(output)
+    output.seek(0)
+    return output
+
+# Function to count tokens
+def count_tokens(text, model_name):
+    enc = encoding_for_model(model_name)
+    return len(enc.encode(text))
+
+st.title("Kahoot Quiz Generator")
+
+# Explanation button with expander for API key instructions
+with st.expander("How to Get an API Key from OpenAI"):
+    st.write("""
+    To obtain an API key from OpenAI, follow these steps:
+
+    **Registration:** Go to the [OpenAI website](https://www.openai.com) and register for an account if you don't have one already.
+
+    **Login:** Log in with your credentials.
+
+    **Create an API Key:**
+
+    1. Navigate to your user profile by clicking on your profile picture in the top right corner.
+    2. Select the "API Keys" option from the dropdown menu or go directly to the API settings using this [link](https://platform.openai.com/api-keys).
+    3. Create a new key: Click the "New API Key" button.
+
+    **Key Naming:** Give the key a name to easily identify it later and confirm the creation.
+
+    **Storage:** Copy the generated API key and store it in a secure place. This key will only be shown once, and you will need it to integrate the API into your application.
+    """)
+
+# Expander for best practices
+with st.expander("Best Practices for Using This App"):
+    st.write("""
+    1. Use clear and concise topics or texts.
+    2. Specify the desired number of questions.
+    3. Review and edit the generated questions if needed.
+    """)
+
+# Explanation button with expander for API key instructions
+with st.expander("Wie man einen API-Schlüssel von OpenAI erhält"):
+    st.write("""
+    Um einen API-Schlüssel von OpenAI zu erhalten, folgen Sie diesen Schritten:
+
+    **Registrierung:** Gehen Sie auf die [OpenAI-Website](https://www.openai.com) und registrieren Sie sich für ein Konto, falls Sie noch keines haben.
+
+    **Anmelden:** Melden Sie sich mit Ihren Anmeldedaten an.
+
+    **API-Schlüssel erstellen:**
+
+    1. Navigieren Sie zu Ihrem Benutzerprofil, indem Sie oben rechts auf Ihr Profilbild klicken.
+    2. Wählen Sie im Dropdown-Menü die Option "API Keys" (API-Schlüssel) oder gehen Sie direkt zu den API-Einstellungen mit diesem [Link](https://platform.openai.com/api-keys).
+    3. Neuen Schlüssel erstellen: Klicken Sie auf die Schaltfläche „New API Key“ (Neuen API-Schlüssel erstellen).
+
+    **Schlüsselbenennung:** Geben Sie dem Schlüssel einen Namen, um ihn später leicht identifizieren zu können, und bestätigen Sie die Erstellung.
+
+    **Speicherung:** Kopieren Sie den generierten API-Schlüssel und speichern Sie ihn an einem sicheren Ort. Dieser Schlüssel wird nur einmal angezeigt, und Sie benötigen ihn für die Integration der API in Ihre Anwendung.
+    """)
+
+# Expander for best practices
+with st.expander("Best Practices für die Nutzung dieser App"):
+    st.write("""
+    1. Verwenden Sie klare und prägnante Themen oder Texte.
+    2. Geben Sie die gewünschte Anzahl von Fragen an.
+    3. Überprüfen und bearbeiten Sie die generierten Fragen bei Bedarf.
+    """)
+
+# API Key input
+api_key = st.text_input("OpenAI API Key:", type="password")
+
+# Text input
+text_input = st.text_area("Enter your text or topic:")
+
+# Learning Objectives input
+learning_objectives = st.text_input("Learning Objectives:")
+
+# Audience input
+audience = st.text_input("Audience:")
+
+# Number of questions dropdown
+num_questions = st.selectbox("Number of questions:", [str(i) for i in range(1, 13)])
+
+# GPT Model selection dropdown
+model_options = {
+    "gpt-4o-mini (Cheapest & Fastest)": "gpt-4o-mini",
+    "gpt-4o": "gpt-4o",
+    "gpt-4-turbo-preview (Best & Most Expensive)": "gpt-4-turbo-preview"
+}
+selected_model_key = st.selectbox("Select GPT Model:", list(model_options.keys()))
+selected_model = model_options[selected_model_key]
+
 def generate_quiz():
     text = text_input.strip()
     num_questions_selected = int(num_questions)
@@ -144,3 +274,90 @@ def generate_quiz():
 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
+
+# Generate button
+if st.button("Generate Quiz"):
+    generate_quiz()
+
+# Edit and Save Quiz Data
+if "quiz_data" in st.session_state:
+    quiz_data = st.session_state["quiz_data"]
+
+    st.write("Edit Quiz Data:")
+    for idx, question in enumerate(quiz_data):
+        question_text = st.text_input(f"**Question {idx+1}**", value=question["question"], key=f"question_{idx}")
+        char_count = len(question_text)
+        color = "red" if char_count > 120 else "green"
+        st.markdown(f'<p style="color:{color};">Character count: {char_count}/120</p>', unsafe_allow_html=True)
+        
+        for answer_idx, answer in enumerate(question["answers"]):
+            answer_text = st.text_input(f"Answer {idx+1}-{answer_idx+1}", value=answer["text"], key=f"answer_{idx}_{answer_idx}")
+            char_count = len(answer_text)
+            color = "red" if char_count > 75 else "green"
+            st.markdown(f'<p style="color:{color};">Character count: {char_count}/75</p>', unsafe_allow_html=True)
+            st.checkbox(f"Correct Answer {idx+1}-{answer_idx+1}", value=answer["is_correct"], key=f"correct_{idx}_{answer_idx}")
+
+    if st.button("Save as JSON"):
+        quiz_data = [
+            {
+                "question": st.session_state[f"question_{idx}"],
+                "answers": [
+                    {
+                        "text": st.session_state[f"answer_{idx}_{answer_idx}"],
+                        "is_correct": st.session_state[f"correct_{idx}_{answer_idx}"]
+                    } for answer_idx in range(4)
+                ]
+            } for idx in range(len(quiz_data))
+        ]
+        json_data = json.dumps(quiz_data, indent=4)
+        json_buffer = StringIO(json_data)
+        st.download_button(
+            label="Download JSON",
+            data=json_buffer,
+            file_name="quiz.json",
+            mime="application/json"
+        )
+
+    if st.button("Save as Excel"):
+        quiz_data = [
+            {
+                "question": st.session_state[f"question_{idx}"],
+                "answers": [
+                    {
+                        "text": st.session_state[f"answer_{idx}_{answer_idx}"],
+                        "is_correct": st.session_state[f"correct_{idx}_{answer_idx}"]
+                    } for answer_idx in range(4)
+                ]
+            } for idx in range(len(quiz_data))
+        ]
+        excel_buffer = save_to_excel(quiz_data)
+        st.download_button(
+            label="Download Excel",
+            data=excel_buffer,
+            file_name="quiz.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        # Expander for next steps
+        with st.expander("Next Steps"):
+            st.write("""
+            1. Save the Excel File.
+            2. Create a new Kahoot quiz.
+            3. Add a new question.
+            4. Choose the import function in Kahoot.
+            5. Upload the Excel file you just saved.
+            """)
+        # Expander for next steps
+        with st.expander("Nächste Schritte"):
+            st.write("""
+            1. Speichern Sie die Excel-Datei.
+            2. Erstellen Sie ein neues Kahoot-Quiz.
+            3. Fügen Sie eine neue Frage hinzu.
+            4. Wählen Sie die Importfunktion in Kahoot.
+            5. Laden Sie die gerade gespeicherte Excel-Datei hoch.
+            """)
+
+# Display input and output token counts if available
+if 'input_tokens' in st.session_state and 'output_tokens' in st.session_state:
+    st.write(f"Input Tokens: {st.session_state['input_tokens']}")
+    st.write(f"Output Tokens: {st.session_state['output_tokens']}")
