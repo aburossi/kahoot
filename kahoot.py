@@ -279,12 +279,24 @@ def generate_quiz():
 if st.button("Generate Quiz"):
     generate_quiz()
 
+# Function to calculate cost
+def calculate_cost(input_tokens, output_tokens, model):
+    costs = {
+        "gpt-4o-mini": (0.00015, 0.0006),
+        "gpt-4o": (0.005, 0.015),
+        "gpt-4-turbo-preview": (0.01, 0.03)
+    }
+    input_cost, output_cost = costs[model]
+    total_cost = (input_tokens * input_cost + output_tokens * output_cost) / 1000000
+    return total_cost
+
 # Edit and Save Quiz Data
 if "quiz_data" in st.session_state:
     quiz_data = st.session_state["quiz_data"]
 
     st.write("Edit Quiz Data:")
     for idx, question in enumerate(quiz_data):
+        st.markdown(f"<h3 style='text-align: center;'>Question {idx+1}</h3>", unsafe_allow_html=True)
         question_text = st.text_input(f"**Question {idx+1}**", value=question["question"], key=f"question_{idx}")
         char_count = len(question_text)
         color = "red" if char_count > 120 else "green"
@@ -296,6 +308,8 @@ if "quiz_data" in st.session_state:
             color = "red" if char_count > 75 else "green"
             st.markdown(f'<p style="color:{color};">Character count: {char_count}/75</p>', unsafe_allow_html=True)
             st.checkbox(f"Correct Answer {idx+1}-{answer_idx+1}", value=answer["is_correct"], key=f"correct_{idx}_{answer_idx}")
+        
+        st.markdown("<hr>", unsafe_allow_html=True)
 
     if st.button("Save as JSON"):
         quiz_data = [
@@ -338,26 +352,31 @@ if "quiz_data" in st.session_state:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-        # Expander for next steps
-        with st.expander("Next Steps"):
-            st.write("""
-            1. Save the Excel File.
-            2. Create a new Kahoot quiz.
-            3. Add a new question.
-            4. Choose the import function in Kahoot.
-            5. Upload the Excel file you just saved.
-            """)
-        # Expander for next steps
-        with st.expander("Nächste Schritte"):
-            st.write("""
-            1. Speichern Sie die Excel-Datei.
-            2. Erstellen Sie ein neues Kahoot-Quiz.
-            3. Fügen Sie eine neue Frage hinzu.
-            4. Wählen Sie die Importfunktion in Kahoot.
-            5. Laden Sie die gerade gespeicherte Excel-Datei hoch.
-            """)
+    # Display token counts and cost
+    if 'input_tokens' in st.session_state and 'output_tokens' in st.session_state:
+        input_tokens = st.session_state['input_tokens']
+        output_tokens = st.session_state['output_tokens']
+        st.write(f"Input Tokens: {input_tokens}")
+        st.write(f"Output Tokens: {output_tokens}")
+        
+        cost = calculate_cost(input_tokens, output_tokens, selected_model)
+        st.write(f"Estimated Cost: ${cost:.6f}")
 
-# Display input and output token counts if available
-if 'input_tokens' in st.session_state and 'output_tokens' in st.session_state:
-    st.write(f"Input Tokens: {st.session_state['input_tokens']}")
-    st.write(f"Output Tokens: {st.session_state['output_tokens']}")
+    # Expander for next steps
+    with st.expander("Next Steps"):
+        st.write("""
+        1. Save the Excel File.
+        2. Create a new Kahoot quiz.
+        3. Add a new question.
+        4. Choose the import function in Kahoot.
+        5. Upload the Excel file you just saved.
+        """)
+    # Expander for next steps
+    with st.expander("Nächste Schritte"):
+        st.write("""
+        1. Speichern Sie die Excel-Datei.
+        2. Erstellen Sie ein neues Kahoot-Quiz.
+        3. Fügen Sie eine neue Frage hinzu.
+        4. Wählen Sie die Importfunktion in Kahoot.
+        5. Laden Sie die gerade gespeicherte Excel-Datei hoch.
+        """)
