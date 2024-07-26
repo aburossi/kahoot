@@ -140,7 +140,7 @@ def generate_quiz():
 
     client = OpenAI(api_key=api_key)
 
-    # Count input tokens before sending to OpenAI
+    # Prepare input text
     input_text = f"""
     Create a quiz based on the given text or topic. 
     Create questions and four potential answers for each question. 
@@ -155,11 +155,46 @@ def generate_quiz():
     6. Audience: {audience_selected}
     
     Text or topic: {text}
+                    
+    JSON format:
+    [
+        {{
+            "question": "Question text (max 120 characters)",
+            "answers": [
+                {{
+                    "text": "Answer option 1 (max 75 characters)",
+                    "is_correct": false
+                }},
+                {{
+                    "text": "Answer option 2 (max 75 characters)",
+                    "is_correct": false
+                }},
+                {{
+                    "text": "Answer option 3 (max 75 characters)",
+                    "is_correct": false
+                }},
+                {{
+                    "text": "Answer option 4 (max 75 characters)",
+                    "is_correct": true
+                }}
+            ]
+        }}
+    ]
+    
+    Important:
+    1. Ensure the JSON is a valid array of question objects.
+    2. Each question must have exactly 4 answer options.
+    3. Only one answer per question should be marked as correct (is_correct: true).
+    4. Do not include any comments or ellipsis (...) in the actual JSON output.
+    5. Repeat the structure for each question, up to the specified number of questions.
+    6. Ensure the entire response is a valid JSON array.
     """
+
+    # Count input tokens
     input_tokens = count_tokens(input_text, selected_model)
     st.write(f"Input Tokens: {input_tokens}")
     
-    # Estimate output tokens (this is a rough estimate)
+    # Estimate output tokens
     estimated_output_tokens = input_tokens * 1.5  # Adjust this multiplier as needed
     st.write(f"Estimated Output Tokens: {int(estimated_output_tokens)}")
 
@@ -182,76 +217,6 @@ def generate_quiz():
         # Count actual output tokens
         output_tokens = count_tokens(generated_quiz, selected_model)
         st.write(f"Actual Output Tokens: {output_tokens}")
-
-
-    try:
-        response = client.chat.completions.create(
-            model=selected_model,
-            messages=[
-                {"role": "system", "content": "You are specialized in generating custom quizzes for the Kahoot platform."},
-                {"role": "user", "content": f"""
-                Create a quiz based on the given text or topic. 
-                Create questions and four potential answers for each question. 
-                Ensure that each question does not exceed 120 characters 
-                VERY IMPORTANT: Ensure each answer remains within 75 characters. 
-                Follow these rules strictly:
-                1. Generate questions about the provided text or topic.
-                2. Create questions and answers in the same language as the input text.
-                3. Provide output in the specified JSON format.
-                4. Generate exactly {num_questions_selected} questions.
-                5. Learning Objectives: {learning_objectives_selected}
-                6. Audience: {audience_selected}
-                
-                Text or topic: {text}
-                                
-                JSON format:
-                [
-                    {{
-                        "question": "Question text (max 120 characters)",
-                        "answers": [
-                            {{
-                                "text": "Answer option 1 (max 75 characters)",
-                                "is_correct": false
-                            }},
-                            {{
-                                "text": "Answer option 2 (max 75 characters)",
-                                "is_correct": false
-                            }},
-                            {{
-                                "text": "Answer option 3 (max 75 characters)",
-                                "is_correct": false
-                            }},
-                            {{
-                                "text": "Answer option 4 (max 75 characters)",
-                                "is_correct": true
-                            }}
-                        ]
-                    }}
-                ]
-                
-                Important:
-                1. Ensure the JSON is a valid array of question objects.
-                2. Each question must have exactly 4 answer options.
-                3. Only one answer per question should be marked as correct (is_correct: true).
-                4. Do not include any comments or ellipsis (...) in the actual JSON output.
-                5. Repeat the structure for each question, up to the specified number of questions.
-                6. Ensure the entire response is a valid JSON array.
-                """}
-            ],
-            temperature=0.7,
-            max_tokens=4000,
-            top_p=1,
-            frequency_penalty=0,
-            presence_penalty=0
-        )
-
-        generated_quiz = response.choices[0].message.content.strip()
-
-        # Count tokens for input and output
-        input_tokens = count_tokens(text_input, selected_model)
-        output_tokens = count_tokens(generated_quiz, selected_model)
-        st.write(f"Input Tokens: {input_tokens}")
-        st.write(f"Output Tokens: {output_tokens}")
 
         try:
             # Attempt to parse the JSON
