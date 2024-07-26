@@ -46,6 +46,13 @@ def count_tokens(text, model_name):
     enc = encoding_for_model(model_name)
     return len(enc.encode(text))
 
+def estimate_tokens_and_cost(input_text, model):
+    input_tokens = count_tokens(input_text, model)
+    estimated_output_tokens = input_tokens * 1.5  # Adjust this multiplier as needed
+    estimated_cost = calculate_cost(input_tokens, estimated_output_tokens, model)
+    return input_tokens, estimated_output_tokens, estimated_cost
+
+
 st.title("Kahoot Quiz Generator")
 
 # Explanation button with expander for API key instructions
@@ -140,6 +147,13 @@ def generate_quiz():
 
     client = OpenAI(api_key=api_key)
 
+# Generate button
+if st.button("Estimate Tokens and Cost"):
+    text = text_input.strip()
+    num_questions_selected = int(num_questions)
+    learning_objectives_selected = learning_objectives.strip()
+    audience_selected = audience.strip()
+
     # Prepare input text
     input_text = f"""
     Create a quiz based on the given text or topic. 
@@ -190,13 +204,24 @@ def generate_quiz():
     6. Ensure the entire response is a valid JSON array.
     """
 
-    # Count input tokens
-    input_tokens = count_tokens(input_text, selected_model)
-    st.session_state['input_tokens'] = input_tokens
+    input_tokens, estimated_output_tokens, estimated_cost = estimate_tokens_and_cost(input_text, selected_model)
     
-    # Estimate output tokens
-    estimated_output_tokens = input_tokens * 1.5  # Adjust this multiplier as needed
-    st.write(f"Estimated Output Tokens: {int(estimated_output_tokens)}")
+    st.write(f"Estimated Input Tokens: {input_tokens}")
+    st.write(f"Estimated Output Tokens: {estimated_output_tokens}")
+    st.write(f"Estimated Cost: ${estimated_cost:.6f}")
+
+    st.session_state['estimated_input_tokens'] = input_tokens
+    st.session_state['estimated_output_tokens'] = estimated_output_tokens
+    st.session_state['estimated_cost'] = estimated_cost
+
+# Generate Quiz button
+if st.button("Generate Quiz"):
+    if 'estimated_cost' in st.session_state:
+        st.write(f"Estimated Cost: ${st.session_state['estimated_cost']:.6f}")
+        if st.button("Confirm and Generate"):
+            generate_quiz()
+    else:
+        st.warning("Please estimate tokens and cost first.")
 
     try:
         response = client.chat.completions.create(
@@ -217,6 +242,10 @@ def generate_quiz():
         # Count actual output tokens
         output_tokens = count_tokens(generated_quiz, selected_model)
         st.session_state['output_tokens'] = output_tokens
+
+        # Calculate and display actual cost
+        actual_cost = calculate_cost(st.session_state['estimated_input_tokens'], output_tokens, selected_model)
+        st.write(f"Actual Cost: ${actual_cost:.6f}")
 
         try:
             # Attempt to parse the JSON
