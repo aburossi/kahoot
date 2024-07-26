@@ -192,11 +192,15 @@ def generate_quiz():
 
     # Count input tokens
     input_tokens = count_tokens(input_text, selected_model)
-    st.write(f"Input Tokens: {input_tokens}")
+    st.session_state['input_tokens'] = input_tokens
     
     # Estimate output tokens
     estimated_output_tokens = input_tokens * 1.5  # Adjust this multiplier as needed
     st.write(f"Estimated Output Tokens: {int(estimated_output_tokens)}")
+
+    # Count actual output tokens
+    output_tokens = count_tokens(generated_quiz, selected_model)
+    st.session_state['output_tokens'] = output_tokens
 
     try:
         response = client.chat.completions.create(
