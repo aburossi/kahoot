@@ -198,10 +198,6 @@ def generate_quiz():
     estimated_output_tokens = input_tokens * 1.5  # Adjust this multiplier as needed
     st.write(f"Estimated Output Tokens: {int(estimated_output_tokens)}")
 
-    # Count actual output tokens
-    output_tokens = count_tokens(generated_quiz, selected_model)
-    st.session_state['output_tokens'] = output_tokens
-
     try:
         response = client.chat.completions.create(
             model=selected_model,
@@ -220,7 +216,7 @@ def generate_quiz():
 
         # Count actual output tokens
         output_tokens = count_tokens(generated_quiz, selected_model)
-        st.write(f"Actual Output Tokens: {output_tokens}")
+        st.session_state['output_tokens'] = output_tokens
 
         try:
             # Attempt to parse the JSON
