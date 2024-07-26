@@ -2,5 +2,3 @@ streamlit
 openai
 pandas
 openpyxl
-tiktoken
-io
