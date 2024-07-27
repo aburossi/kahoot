@@ -48,74 +48,80 @@ def count_tokens(text, model_name):
 
 st.title("Kahoot Quiz Generator")
 
-# Explanation button with expander for API key instructions
-with st.expander("❗ How to Get an API Key from OpenAI"):
-    st.write("""
-    To obtain an API key from OpenAI, follow these steps:
+import streamlit as st
 
-    **Registration:** Go to the [OpenAI website](https://www.openai.com) and register for an account if you don't have one already.
+# Main English expander
+with st.expander("🇬🇧 English Instructions and Best Practices"):
+    # Nested expander for API key instructions
+    with st.expander("❗ How to Get an API Key from OpenAI"):
+        st.write("""
+        To obtain an API key from OpenAI, follow these steps:
 
-    **Login:** Log in with your credentials.
+        **Registration:** Go to the [OpenAI website](https://www.openai.com) and register for an account if you don't have one already.
 
-    **Create an API Key:**
+        **Login:** Log in with your credentials.
 
-    1. Navigate to your user profile by clicking on your profile picture in the top right corner.
-    2. Select the "API Keys" option from the dropdown menu or go directly to the API settings using this [link](https://platform.openai.com/api-keys).
-    3. Create a new key: Click the "New API Key" button.
+        **Create an API Key:**
 
-    **Key Naming:** Give the key a name to easily identify it later and confirm the creation.
+        1. Navigate to your user profile by clicking on your profile picture in the top right corner.
+        2. Select the "API Keys" option from the dropdown menu or go directly to the API settings using this [link](https://platform.openai.com/api-keys).
+        3. Create a new key: Click the "New API Key" button.
 
-    **Storage:** Copy the generated API key and store it in a secure place. This key will only be shown once, and you will need it to integrate the API into your application.
-    """)
+        **Key Naming:** Give the key a name to easily identify it later and confirm the creation.
 
-# English version
-with st.expander("👉 Best Practices for Using This App"):
-    st.write("""
-    1. Use clear and concise topics or texts.
-    2. Specify the desired number of questions.
-    3. Review and edit the generated questions if needed.
-    4. Be aware of model limitations:
-       - Depending on the length of your input text, the models gpt-4o and gpt-4-turbo-preview may generate fewer than 12 questions due to token limitations.
-       - If you need more questions, you can:
-         a) Generate a second output and import two tables in Kahoot.
-         b) Use the gpt-4o-mini model, which has a larger text window and can handle longer inputs.
-    5. For longer texts or more complex topics, consider breaking them into smaller sections and generating multiple sets of questions.
-    """)
+        **Storage:** Copy the generated API key and store it in a secure place. This key will only be shown once, and you will need it to integrate the API into your application.
+        """)
 
-# Explanation button with expander for API key instructions
-with st.expander("Wie man einen API-Schlüssel von OpenAI erhält"):
-    st.write("""
-    Um einen API-Schlüssel von OpenAI zu erhalten, folgen Sie diesen Schritten:
+    # Nested expander for best practices
+    with st.expander("👉 Best Practices for Using This App"):
+        st.write("""
+        1. Use clear and concise topics or texts.
+        2. Specify the desired number of questions.
+        3. Review and edit the generated questions if needed.
+        4. Be aware of model limitations:
+           - Depending on the length of your input text, the models gpt-4o and gpt-4-turbo-preview may generate fewer than 12 questions due to token limitations.
+           - If you need more questions, you can:
+             a) Generate a second output and import two tables in Kahoot.
+             b) Use the gpt-4o-mini model, which has a larger text window and can handle longer inputs.
+        5. For longer texts or more complex topics, consider breaking them into smaller sections and generating multiple sets of questions.
+        """)
 
-    **Registrierung:** Gehen Sie auf die [OpenAI-Website](https://www.openai.com) und registrieren Sie sich für ein Konto, falls Sie noch keines haben.
+# Main German expander
+with st.expander("🇩🇪 Deutsche Anleitung und Best Practices"):
+    # Nested expander for API key instructions in German
+    with st.expander("❗ Wie man einen API-Schlüssel von OpenAI erhält"):
+        st.write("""
+        Um einen API-Schlüssel von OpenAI zu erhalten, folgen Sie diesen Schritten:
 
-    **Anmelden:** Melden Sie sich mit Ihren Anmeldedaten an.
+        **Registrierung:** Gehen Sie auf die [OpenAI-Website](https://www.openai.com) und registrieren Sie sich für ein Konto, falls Sie noch keines haben.
 
-    **API-Schlüssel erstellen:**
+        **Anmelden:** Melden Sie sich mit Ihren Anmeldedaten an.
 
-    1. Navigieren Sie zu Ihrem Benutzerprofil, indem Sie oben rechts auf Ihr Profilbild klicken.
-    2. Wählen Sie im Dropdown-Menü die Option "API Keys" (API-Schlüssel) oder gehen Sie direkt zu den API-Einstellungen mit diesem [Link](https://platform.openai.com/api-keys).
-    3. Neuen Schlüssel erstellen: Klicken Sie auf die Schaltfläche „New API Key“ (Neuen API-Schlüssel erstellen).
+        **API-Schlüssel erstellen:**
 
-    **Schlüsselbenennung:** Geben Sie dem Schlüssel einen Namen, um ihn später leicht identifizieren zu können, und bestätigen Sie die Erstellung.
+        1. Navigieren Sie zu Ihrem Benutzerprofil, indem Sie oben rechts auf Ihr Profilbild klicken.
+        2. Wählen Sie im Dropdown-Menü die Option "API Keys" (API-Schlüssel) oder gehen Sie direkt zu den API-Einstellungen mit diesem [Link](https://platform.openai.com/api-keys).
+        3. Neuen Schlüssel erstellen: Klicken Sie auf die Schaltfläche „New API Key" (Neuen API-Schlüssel erstellen).
 
-    **Speicherung:** Kopieren Sie den generierten API-Schlüssel und speichern Sie ihn an einem sicheren Ort. Dieser Schlüssel wird nur einmal angezeigt, und Sie benötigen ihn für die Integration der API in Ihre Anwendung.
-    """)
+        **Schlüsselbenennung:** Geben Sie dem Schlüssel einen Namen, um ihn später leicht identifizieren zu können, und bestätigen Sie die Erstellung.
 
-# German version
-with st.expander("Best Practices für die Nutzung dieser App"):
-    st.write("""
-    1. Verwenden Sie klare und prägnante Themen oder Texte.
-    2. Nutzen Sie die Lernziele, um die LLM auf bestimmten Inhalte zu prompten.   
-    3. Überprüfen und bearbeiten Sie die generierten Fragen bei Bedarf.
-    4. Beachten Sie die Modellbeschränkungen:
-       - Abhängig von der Länge Ihres Eingabetextes können die Modelle gpt-4o und gpt-4-turbo-preview aufgrund von Token-Beschränkungen möglicherweise weniger als 12 Fragen generieren.
-       - Wenn Sie mehr Fragen benötigen, können Sie:
-         a) Eine zweite Ausgabe generieren und zwei Tabellen in Kahoot importieren.
-         b) Das Modell gpt-4o-mini verwenden, das ein grösseres Textfenster hat und längere Eingaben verarbeiten kann.
-    5. Für längere Texte oder komplexere Themen sollten Sie diese in kleinere Abschnitte unterteilen und mehrere Fragensätze generieren.
-    """)
+        **Speicherung:** Kopieren Sie den generierten API-Schlüssel und speichern Sie ihn an einem sicheren Ort. Dieser Schlüssel wird nur einmal angezeigt, und Sie benötigen ihn für die Integration der API in Ihre Anwendung.
+        """)
 
+    # Nested expander for best practices in German
+    with st.expander("👉 Best Practices für die Nutzung dieser App"):
+        st.write("""
+        1. Verwenden Sie klare und prägnante Themen oder Texte.
+        2. Nutzen Sie die Lernziele, um die LLM auf bestimmten Inhalte zu prompten.   
+        3. Überprüfen und bearbeiten Sie die generierten Fragen bei Bedarf.
+        4. Beachten Sie die Modellbeschränkungen:
+           - Abhängig von der Länge Ihres Eingabetextes können die Modelle gpt-4o und gpt-4-turbo-preview aufgrund von Token-Beschränkungen möglicherweise weniger als 12 Fragen generieren.
+           - Wenn Sie mehr Fragen benötigen, können Sie:
+             a) Eine zweite Ausgabe generieren und zwei Tabellen in Kahoot importieren.
+             b) Das Modell gpt-4o-mini verwenden, das ein grösseres Textfenster hat und längere Eingaben verarbeiten kann.
+        5. Für längere Texte oder komplexere Themen sollten Sie diese in kleinere Abschnitte unterteilen und mehrere Fragensätze generieren.
+        """)
+        
 # API Key input
 api_key = st.text_input("OpenAI API Key:", type="password")
 
