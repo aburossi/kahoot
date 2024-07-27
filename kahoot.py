@@ -48,58 +48,39 @@ def count_tokens(text, model_name):
 
 st.title("Kahoot Quiz Generator")
 
-# Main expander
-with st.expander("Best Practices for Using This App"):
+# Explanation button with expander for API key instructions
+with st.expander("❗ How to Get an API Key from OpenAI"):
+    st.write("""
+    To obtain an API key from OpenAI, follow these steps:
+
+    **Registration:** Go to the [OpenAI website](https://www.openai.com) and register for an account if you don't have one already.
+
+    **Login:** Log in with your credentials.
+
+    **Create an API Key:**
+
+    1. Navigate to your user profile by clicking on your profile picture in the top right corner.
+    2. Select the "API Keys" option from the dropdown menu or go directly to the API settings using this [link](https://platform.openai.com/api-keys).
+    3. Create a new key: Click the "New API Key" button.
+
+    **Key Naming:** Give the key a name to easily identify it later and confirm the creation.
+
+    **Storage:** Copy the generated API key and store it in a secure place. This key will only be shown once, and you will need it to integrate the API into your application.
+    """)
+
+# English version
+with st.expander("👉 Best Practices for Using This App"):
     st.write("""
     1. Use clear and concise topics or texts.
     2. Specify the desired number of questions.
     3. Review and edit the generated questions if needed.
+    4. Be aware of model limitations:
+       - Depending on the length of your input text, the models gpt-4o and gpt-4-turbo-preview may generate fewer than 12 questions due to token limitations.
+       - If you need more questions, you can:
+         a) Generate a second output and import two tables in Kahoot.
+         b) Use the gpt-4o-mini model, which has a larger text window and can handle longer inputs.
+    5. For longer texts or more complex topics, consider breaking them into smaller sections and generating multiple sets of questions.
     """)
-    
-    # Nested expander for model limitations
-    with st.expander("Model Limitations and Workarounds"):
-        st.write("""
-        Depending on the length of your input text, some models may generate fewer questions than requested due to token limitations.
-        
-        - gpt-4o and gpt-4-turbo-preview: May generate fewer than 12 questions for longer inputs.
-        - gpt-4o-mini: Can handle longer inputs and generate more questions.
-        """)
-        
-        # Further nested expander for workarounds
-        with st.expander("Workarounds for Generating More Questions"):
-            st.write("""
-            If you need more questions, you can:
-            1. Generate a second output and import two tables in Kahoot.
-            2. Use the gpt-4o-mini model for longer inputs.
-            3. Break longer texts into smaller sections and generate multiple sets of questions.
-            """)
-
-# German version
-with st.expander("Best Practices für die Nutzung dieser App"):
-    st.write("""
-    1. Verwenden Sie klare und prägnante Themen oder Texte.
-    2. Geben Sie die gewünschte Anzahl von Fragen an.
-    3. Überprüfen und bearbeiten Sie die generierten Fragen bei Bedarf.
-    """)
-    
-    # Nested expander for model limitations in German
-    with st.expander("Modellbeschränkungen und Lösungsansätze"):
-        st.write("""
-        Abhängig von der Länge Ihres Eingabetextes können einige Modelle aufgrund von Token-Beschränkungen möglicherweise weniger Fragen als angefordert generieren.
-        
-        - gpt-4o und gpt-4-turbo-preview: Können bei längeren Eingaben weniger als 12 Fragen generieren.
-        - gpt-4o-mini: Kann längere Eingaben verarbeiten und mehr Fragen generieren.
-        """)
-        
-        # Further nested expander for workarounds in German
-        with st.expander("Lösungsansätze zur Generierung von mehr Fragen"):
-            st.write("""
-            Wenn Sie mehr Fragen benötigen, können Sie:
-            1. Eine zweite Ausgabe generieren und zwei Tabellen in Kahoot importieren.
-            2. Das Modell gpt-4o-mini für längere Eingaben verwenden.
-            3. Längere Texte in kleinere Abschnitte unterteilen und mehrere Fragensätze generieren.
-            """)
-
 
 # Explanation button with expander for API key instructions
 with st.expander("Wie man einen API-Schlüssel von OpenAI erhält"):
