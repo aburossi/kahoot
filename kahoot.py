@@ -101,7 +101,7 @@ with st.expander("Wie man einen API-Schlüssel von OpenAI erhält"):
 with st.expander("Best Practices für die Nutzung dieser App"):
     st.write("""
     1. Verwenden Sie klare und prägnante Themen oder Texte.
-    2. Geben Sie die gewünschte Anzahl von Fragen an.
+    2. Nutzen Sie die Lernziele, um die LLM auf bestimmten Inhalte zu prompten.
     3. Überprüfen und bearbeiten Sie die generierten Fragen bei Bedarf.
     """)
 
