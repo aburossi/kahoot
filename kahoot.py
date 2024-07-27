@@ -128,6 +128,15 @@ model_options = {
 selected_model_key = st.selectbox("Select GPT Model:", list(model_options.keys()))
 selected_model = model_options[selected_model_key]
 
+# Add this function to get the max tokens for each model
+def get_max_tokens(model):
+    max_tokens = {
+        "gpt-4o-mini": 16383,
+        "gpt-4o": 4095,
+        "gpt-4-turbo-preview": 4095
+    }
+    return max_tokens.get(model, 4095)  # Default to 4095 if model not found
+
 def generate_quiz():
     text = text_input.strip()
     num_questions_selected = int(num_questions)
@@ -194,9 +203,16 @@ def generate_quiz():
     input_tokens = count_tokens(input_text, selected_model)
     st.write(f"Input Tokens: {input_tokens}")
     
-    # Estimate output tokens
-    estimated_output_tokens = input_tokens * 1.5  # Adjust this multiplier as needed
-    st.write(f"Estimated Output Tokens: {int(estimated_output_tokens)}")
+    # Get max tokens for the selected model
+    max_tokens = get_max_tokens(selected_model)
+    
+    # Calculate available tokens for the response
+    available_tokens = max_tokens - input_tokens - 100  # Subtract 100 as a safety margin
+    
+    # Ensure available tokens is not negative
+    available_tokens = max(0, available_tokens)
+    
+    st.write(f"Available Tokens for Response: {available_tokens}")
 
     try:
         response = client.chat.completions.create(
@@ -206,7 +222,7 @@ def generate_quiz():
                 {"role": "user", "content": input_text}
             ],
             temperature=0.7,
-            max_tokens=8000,
+            max_tokens=available_tokens,
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0
