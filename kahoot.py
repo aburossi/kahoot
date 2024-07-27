@@ -227,6 +227,7 @@ def generate_quiz():
             # Attempt to fix common JSON issues
             fixed_json = re.sub(r',\s*]', ']', generated_quiz)  # Remove trailing commas
             fixed_json = re.sub(r',\s*}', '}', fixed_json)  # Remove trailing commas in objects
+            fixed_json = re.sub(r'\{\.\.\..*?\}', '', fixed_json, flags=re.DOTALL)  # Remove incomplete objects
 
             # If the JSON is incomplete, attempt to complete it
             if fixed_json.count('{') > fixed_json.count('}'):
@@ -238,8 +239,16 @@ def generate_quiz():
                 quiz_data = json.loads(fixed_json)
                 st.success("Successfully fixed and parsed the JSON response.")
             except json.JSONDecodeError:
-                st.error(f"Unable to fix JSON parsing error. Raw response:\n{generated_quiz}")
-                return
+                st.error(f"Unable to fix JSON parsing error. Attempting to extract valid questions.")
+                # Extract valid questions using regex
+                pattern = r'\{\s*"question":\s*"[^"]*",\s*"answers":\s*\[(?:[^}]+\},?){4}\s*\]\s*\}'
+                valid_questions = re.findall(pattern, generated_quiz)
+                if valid_questions:
+                    quiz_data = json.loads(f"[{','.join(valid_questions)}]")
+                    st.success(f"Extracted {len(quiz_data)} valid questions from the response.")
+                else:
+                    st.error("No valid questions found in the response.")
+                    return
 
         # Validate and fix the quiz data structure
         valid_quiz_data = []
