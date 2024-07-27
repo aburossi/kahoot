@@ -207,7 +207,7 @@ def generate_quiz():
                 {"role": "user", "content": input_text}
             ],
             temperature=0.7,
-            max_tokens=4000,
+            max_tokens=8000,
             top_p=1,
             frequency_penalty=0,
             presence_penalty=0
