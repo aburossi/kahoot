@@ -48,8 +48,6 @@ def count_tokens(text, model_name):
 
 st.title("Kahoot Quiz Generator")
 
-import streamlit as st
-
 # English section
 with st.expander("English"):
     # Explanation button with expander for API key instructions
