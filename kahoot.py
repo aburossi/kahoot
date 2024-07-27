@@ -83,7 +83,7 @@ with st.expander("👉 Best Practices for Using This App"):
     """)
 
 # Explanation button with expander for API key instructions
-with st.expander("Wie man einen API-Schlüssel von OpenAI erhält"):
+with st.expander("❗ Wie man einen API-Schlüssel von OpenAI erhält"):
     st.write("""
     Um einen API-Schlüssel von OpenAI zu erhalten, folgen Sie diesen Schritten:
 
@@ -103,7 +103,7 @@ with st.expander("Wie man einen API-Schlüssel von OpenAI erhält"):
     """)
 
 # German version
-with st.expander("Best Practices für die Nutzung dieser App"):
+with st.expander("👉 Best Practices für die Nutzung dieser App"):
     st.write("""
     1. Verwenden Sie klare und prägnante Themen oder Texte.
     2. Nutzen Sie die Lernziele, um die LLM auf bestimmten Inhalte zu prompten.   
