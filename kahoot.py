@@ -49,7 +49,7 @@ def count_tokens(text, model_name):
 st.title("Kahoot Quiz Generator")
 
 # Explanation button with expander for API key instructions
-with st.expander("How to Get an API Key from OpenAI"):
+with st.expander("❗ How to Get an API Key from OpenAI"):
     st.write("""
     To obtain an API key from OpenAI, follow these steps:
 
@@ -69,7 +69,7 @@ with st.expander("How to Get an API Key from OpenAI"):
     """)
 
 # English version
-with st.expander("Best Practices for Using This App"):
+with st.expander("👉 Best Practices for Using This App"):
     st.write("""
     1. Use clear and concise topics or texts.
     2. Specify the desired number of questions.
