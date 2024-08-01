@@ -53,7 +53,7 @@ col1, col2 = st.columns(2)
 
 # English section
 with col1:
-    with st.expander("❗ How to Get an API Key from OpenAI"):
+    with st.expander("❗ **How to Get an API Key from OpenAI**"):
         st.write("""
         To obtain an API key from OpenAI, follow these steps:
 
