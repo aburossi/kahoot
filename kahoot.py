@@ -96,6 +96,7 @@ with col2:
         **Anmelden:** Melden Sie sich mit Ihren Anmeldedaten an.
 
         **API-Schlüssel erstellen:**
+        [Videoeanleitung](https://youtu.be/NsTAjBdHb1k?feature=shared)
 
         1. Navigieren Sie zu Ihrem Benutzerprofil, indem Sie oben rechts auf Ihr Profilbild klicken.
         2. Wählen Sie im Dropdown-Menü die Option "API Keys" (API-Schlüssel) oder gehen Sie direkt zu den API-Einstellungen mit diesem [Link](https://platform.openai.com/api-keys).
@@ -147,7 +148,7 @@ selected_model = model_options[selected_model_key]
 def get_max_tokens(model):
     max_tokens = {
         "gpt-4o-mini": 16383,
-        "gpt-4o": 4095,
+        "gpt-4o": 16000,
         "gpt-4-turbo-preview": 4095
     }
     return max_tokens.get(model, 4095)  # Default to 4095 if model not found
