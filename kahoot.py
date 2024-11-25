@@ -8,6 +8,10 @@ import re
 from io import BytesIO, StringIO
 from tiktoken import encoding_for_model  # Import tiktoken for token counting
 import streamlit.components.v1 as components  # Import components for embedding HTML
+import docx
+import PyPDF2
+import pytesseract
+from PIL import Image
 
 # Helper function to save quiz data to Excel
 def save_to_excel(quiz_data):
@@ -46,6 +50,28 @@ def save_to_excel(quiz_data):
 def count_tokens(text, model_name):
     enc = encoding_for_model(model_name)
     return len(enc.encode(text))
+
+# Functions to extract text from different file types
+def extract_text_from_docx(file):
+    doc = docx.Document(file)
+    full_text = []
+    for para in doc.paragraphs:
+        full_text.append(para.text)
+    return '\n'.join(full_text)
+
+def extract_text_from_pdf(file):
+    reader = PyPDF2.PdfReader(file)
+    text = ""
+    for page in reader.pages:
+        extracted = page.extract_text()
+        if extracted:
+            text += extracted + "\n"
+    return text
+
+def extract_text_from_image(file):
+    image = Image.open(file)
+    text = pytesseract.image_to_string(image)
+    return text
 
 st.title("Kahoot Quiz Generator")
 
@@ -108,6 +134,15 @@ with st.sidebar:
         5. For longer texts or more complex topics, consider breaking them into smaller sections and generating multiple sets of questions.
         """)
 
+    # Datei-Uploads hinzufügen
+    st.markdown("### 📂 **Datei-Upload**")
+
+    uploaded_files = st.file_uploader(
+        "Laden Sie Bilder, PDFs oder DOCX-Dateien hoch:",
+        type=["png", "jpg", "jpeg", "pdf", "docx"],
+        accept_multiple_files=True
+    )
+
 # API Key input
 api_key = st.text_input("OpenAI API Key:", type="password")
 
@@ -141,8 +176,29 @@ def get_max_tokens(model):
     }
     return max_tokens.get(model, 4095)  # Default to 4095 if model not found
 
+# Initialisieren einer Variable für den kombinierten Text
+combined_text = text_input.strip()
+
+# Verarbeiten der hochgeladenen Dateien
+if uploaded_files:
+    for uploaded_file in uploaded_files:
+        file_extension = uploaded_file.name.split('.')[-1].lower()
+        st.sidebar.write(f"Verarbeite: {uploaded_file.name}")
+        
+        if file_extension in ['png', 'jpg', 'jpeg']:
+            extracted_text = extract_text_from_image(uploaded_file)
+            combined_text += "\n" + extracted_text
+        elif file_extension == 'pdf':
+            extracted_text = extract_text_from_pdf(uploaded_file)
+            combined_text += "\n" + extracted_text
+        elif file_extension == 'docx':
+            extracted_text = extract_text_from_docx(uploaded_file)
+            combined_text += "\n" + extracted_text
+
+    st.sidebar.success("Dateien erfolgreich verarbeitet und Text extrahiert.")
+
 def generate_quiz():
-    text = text_input.strip()
+    text = combined_text  # Verwenden Sie den kombinierten Text
     num_questions_selected = int(num_questions)
     learning_objectives_selected = learning_objectives.strip()
     audience_selected = audience.strip()
@@ -155,52 +211,52 @@ def generate_quiz():
 
     # Prepare input text
     input_text = f"""
-    Create a quiz based on the given text or topic. 
-    Create questions and four potential answers for each question. 
-    Ensure that each question does not exceed 120 characters 
-    VERY IMPORTANT: Ensure each answer remains within 75 characters. 
-    Follow these rules strictly:
-    1. Generate questions about the provided text or topic.
-    2. Create questions and answers in the same language as the input text.
-    3. Provide output in the specified JSON format.
-    4. Generate exactly {num_questions_selected} questions.
-    5. Learning Objectives: {learning_objectives_selected}
-    6. Audience: {audience_selected}
+    Erstelle ein Quiz basierend auf dem gegebenen Text oder Thema. 
+    Erstelle Fragen und vier potenzielle Antworten für jede Frage. 
+    Stelle sicher, dass jede Frage nicht mehr als 120 Zeichen enthält. 
+    SEHR WICHTIG: Stelle sicher, dass jede Antwort innerhalb von 75 Zeichen bleibt. 
+    Befolge diese Regeln strikt:
+    1. Generiere Fragen über den bereitgestellten Text oder das Thema.
+    2. Erstelle Fragen und Antworten in derselben Sprache wie der Eingabetext.
+    3. Gib das Ergebnis im angegebenen JSON-Format aus.
+    4. Generiere genau {num_questions_selected} Fragen.
+    5. Lernziele: {learning_objectives_selected}
+    6. Zielgruppe: {audience_selected}
     
-    Text or topic: {text}
+    Text oder Thema: {text}
                     
-    JSON format:
+    JSON-Format:
     [
         {{
-            "question": "Question text (max 120 characters)",
+            "question": "Fragentext (max. 120 Zeichen)",
             "answers": [
                 {{
-                    "text": "Answer option 1 (max 75 characters)",
+                    "text": "Antwortoption 1 (max. 75 Zeichen)",
                     "is_correct": false
                 }},
                 {{
-                    "text": "Answer option 2 (max 75 characters)",
+                    "text": "Antwortoption 2 (max. 75 Zeichen)",
                     "is_correct": false
                 }},
                 {{
-                    "text": "Answer option 3 (max 75 characters)",
+                    "text": "Antwortoption 3 (max. 75 Zeichen)",
                     "is_correct": false
                 }},
                 {{
-                    "text": "Answer option 4 (max 75 characters)",
+                    "text": "Antwortoption 4 (max. 75 Zeichen)",
                     "is_correct": true
                 }}
             ]
         }}
     ]
     
-    Important:
-    1. Ensure the JSON is a valid array of question objects.
-    2. Each question must have exactly 4 answer options.
-    3. Only one answer per question should be marked as correct (is_correct: true).
-    4. Do not include any comments or ellipsis (...) in the actual JSON output.
-    5. Repeat the structure for each question, up to the specified number of questions.
-    6. Ensure the entire response is a valid JSON array.
+    Wichtig:
+    1. Stelle sicher, dass das JSON ein gültiges Array von Frageobjekten ist.
+    2. Jede Frage muss genau 4 Antwortoptionen haben.
+    3. Pro Frage sollte nur eine Antwort als korrekt markiert sein (is_correct: true).
+    4. Füge keine Kommentare oder Auslassungspunkte (...) in der tatsächlichen JSON-Ausgabe hinzu.
+    5. Wiederhole die Struktur für jede Frage, bis zur angegebenen Anzahl von Fragen.
+    6. Stelle sicher, dass die gesamte Antwort ein gültiges JSON-Array ist.
     """
 
     # Count input tokens
