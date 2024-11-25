@@ -128,28 +128,10 @@ def generate_quiz():
              f"Text/Topic: {text_input} " \
              "Provide the output as a JSON array with 'question', 'answers' (array), and 'correct_answer' fields."
 
-    if language == "Deutsch":
-        prompt = f"Erstellen Sie ein Quiz basierend auf dem gegebenen Text/Thema und Bild (falls vorhanden). " \
-                 f"Generieren Sie {num_questions} Fragen, jede mit vier Antworten. " \
-                 f"Fragen dürfen 120 Zeichen nicht überschreiten. " \
-                 f"Antworten dürfen 75 Zeichen nicht überschreiten. " \
-                 f"Lernziele: {learning_objectives} " \
-                 f"Zielgruppe: {audience} " \
-                 f"Text/Thema: {text_input} " \
-                 f"Geben Sie die Ausgabe als JSON-Array mit den Feldern 'question', 'answers' (Array) und 'correct_answer' aus."
-
     messages = [
         {"role": "system", "content": "You are a quiz generator for Kahoot. Always respond with valid JSON."},
         {"role": "user", "content": prompt}
     ]
-    if image_content:
-        messages.append({
-            "role": "user",
-            "content": [
-                {"type": "text", "text": "Consider this image:"},
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_content}"}}
-            ]
-        })
 
     try:
         with st.spinner('Generating quiz...'):
@@ -163,18 +145,19 @@ def generate_quiz():
                 presence_penalty=0
             )
 
-            generated_content = response.choices[0].message.content
-            if not generated_content:
-                st.error("Empty response from API")
-                return
-            generated_content = generated_content.strip()
+        generated_content = response.choices[0].message.content.strip()
         
         try:
-            raw_quiz_data = json.loads(generated_content)
-            
-            # Convert the format to what we expect
+            # Clean and parse JSON
+            raw_json = generated_content.strip()
+            raw_quiz_data = json.loads(raw_json)  # Parse JSON content
+
+            # Validate JSON format
             quiz_data = []
             for item in raw_quiz_data:
+                if 'question' not in item or 'answers' not in item or 'correct_answer' not in item:
+                    continue  # Skip invalid entries
+                
                 answers = item['answers']
                 correct_answer = item['correct_answer']
                 formatted_answers = [
@@ -185,6 +168,10 @@ def generate_quiz():
                     "question": item['question'],
                     "answers": formatted_answers
                 })
+
+            if not quiz_data:
+                st.error("No valid quiz questions generated.")
+                return
 
             st.success(f"Successfully generated {len(quiz_data)} questions.")
             
@@ -199,8 +186,12 @@ def generate_quiz():
             
             st.session_state["quiz_data"] = quiz_data
 
-        except (json.JSONDecodeError, KeyError) as e:
+        except json.JSONDecodeError as e:
             st.error(f"Failed to parse the generated quiz: {str(e)}")
+            st.text(f"Raw API Response:\n{generated_content}")
+
+    except Exception as e:
+        st.error(f"An unexpected error occurred: {str(e)}")
 
     except Exception as e:
         st.error(f"An unexpected error occurred: {str(e)}")
