@@ -83,61 +83,58 @@ def extract_text_from_docx(file):
     text = "\n".join([para.text for para in doc.paragraphs])
     return text.strip()
 
-def validate_and_fix_json(generated_quiz):
+ddef validate_and_fix_json(generated_quiz):
     """Validate and fix JSON output from OpenAI."""
     try:
-        # Attempt to parse the raw JSON directly
-        return json.loads(generated_quiz)
+        # Parse the raw JSON directly
+        quiz_data = json.loads(generated_quiz)
+
+        # Convert `correctAnswer` index to `is_correct` property
+        for item in quiz_data:
+            correct_index = item.get("correctAnswer")
+            if correct_index is not None:
+                for idx, answer in enumerate(item["answers"]):
+                    # Ensure each answer is a dict with `text` and `is_correct`
+                    item["answers"][idx] = {"text": answer, "is_correct": (idx == correct_index)}
+
+        return quiz_data
     except json.JSONDecodeError:
-        st.warning("Error parsing JSON. Attempting to extract valid snippets.")
-
-        # Remove invalid characters and attempt to fix common issues
-        fixed_json = re.sub(r',\s*]', ']', generated_quiz)  # Fix trailing commas
-        fixed_json = re.sub(r',\s*}', '}', fixed_json)  # Fix trailing commas in objects
-        fixed_json = re.sub(r'(?<=\})\s*,\s*(?=\})', '', fixed_json)  # Remove commas between objects
-        fixed_json = fixed_json.strip()
-
-        # Extract valid JSON objects using regex
-        pattern = r'\{\s*"question":\s*".+?",\s*"answers":\s*\[.+?\]\s*\}'
-        valid_snippets = re.findall(pattern, fixed_json)
-
-        if valid_snippets:
-            st.info(f"Extracted {len(valid_snippets)} valid questions from the response.")
-            try:
-                # Rebuild the JSON array from valid snippets
-                valid_json = "[" + ",".join(valid_snippets) + "]"
-                return json.loads(valid_json)
-            except json.JSONDecodeError:
-                st.error("Failed to parse extracted JSON snippets.")
-        else:
-            st.error("No valid JSON objects found in the response.")
-
-        # Display raw response for debugging
-        st.error("Original response could not be parsed:")
+        st.error("Error parsing JSON. Unable to fix.")
         st.code(generated_quiz, language="json")
-
         return []
 
 # Function to generate quiz from OpenAI response
-def generate_quiz(api_key, input_text, num_questions, model):
+def generate_quiz(api_key, input_text, num_questions, model, image_base64=None):
     client = OpenAI(api_key=api_key)
 
     prompt = f"""
-    Create a quiz based on the given text. 
+    Create a quiz based on the given text or image. 
     Generate {num_questions} questions, each with four possible answers, one of which is correct.
     Format the output as a JSON array. Ensure each answer text is concise and suitable for Kahoot.
-    Text: {input_text}
+    Text: {input_text if input_text else "Based on the image content."}
     """
 
+    # Include image content if available
+    if image_base64:
+        prompt += "\nImage content is provided as a base64-encoded JPEG."
+
     try:
+        messages = [{"role": "system", "content": "You are specialized in generating Kahoot quizzes."},
+                    {"role": "user", "content": prompt}]
+
+        # Add image to the API input if provided
+        if image_base64:
+            messages.append({
+                "role": "user",
+                "content": {"type": "image", "data": f"data:image/jpeg;base64,{image_base64}"}
+            })
+
         response = client.chat.completions.create(
             model=model,
-            messages=[
-                {"role": "system", "content": "You are specialized in generating Kahoot quizzes."},
-                {"role": "user", "content": prompt}
-            ],
+            messages=messages,
             max_tokens=1000,
         )
+
         raw_response = response.choices[0].message.content
         st.text_area("Raw Response from OpenAI", raw_response, height=300)  # Display raw response for debugging
         return raw_response
