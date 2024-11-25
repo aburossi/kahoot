@@ -11,22 +11,36 @@ import base64
 
 # Helper function to save quiz data to Excel
 def save_to_excel(quiz_data):
+    if not quiz_data or not isinstance(quiz_data, list):
+        st.error("Invalid quiz data format.")
+        return None
+
     output = BytesIO()
     wb = openpyxl.Workbook()
     sheet = wb.active
     sheet.append(["Question", "Answer 1", "Answer 2", "Answer 3", "Answer 4", "Time", "Correct"])
+    
     for question in quiz_data:
+        if 'question' not in question or 'answers' not in question:
+            continue
         answers = question['answers']
+        if len(answers) != 4:
+            continue
         random.shuffle(answers)
-        correct_index = next((i for i, ans in enumerate(answers) if ans['is_correct']), None)
+        correct_index = next((i for i, ans in enumerate(answers) if ans.get('is_correct')), None)
         if correct_index is None:
-            st.error("No correct answer specified for a question.")
-            return None
+            continue
         row = [question['question']] + [ans['text'] for ans in answers] + ["20", correct_index + 1]
         sheet.append(row)
+
+    if sheet.max_row == 1:  # Only header row
+        st.error("No valid questions to save.")
+        return None
+
     wb.save(output)
     output.seek(0)
     return output
+
 
 # Function to count tokens
 def count_tokens(text, model_name):
@@ -111,7 +125,8 @@ def generate_quiz():
              "Answers must not exceed 75 characters. " \
              f"Learning Objectives: {learning_objectives} " \
              f"Audience: {audience} " \
-             f"Text/Topic: {text_input}"
+             f"Text/Topic: {text_input} " \
+             "Provide the output as a valid JSON array."
 
     if language == "Deutsch":
         prompt = f"Erstellen Sie ein Quiz basierend auf dem gegebenen Text/Thema und Bild (falls vorhanden). " \
@@ -120,10 +135,11 @@ def generate_quiz():
                  f"Antworten dürfen 75 Zeichen nicht überschreiten. " \
                  f"Lernziele: {learning_objectives} " \
                  f"Zielgruppe: {audience} " \
-                 f"Text/Thema: {text_input}"
+                 f"Text/Thema: {text_input} " \
+                 f"Geben Sie die Ausgabe als gültiges JSON-Array aus."
 
     messages = [
-        {"role": "system", "content": "You are a quiz generator for Kahoot."},
+        {"role": "system", "content": "You are a quiz generator for Kahoot. Always respond with valid JSON."},
         {"role": "user", "content": prompt}
     ]
     if image_content:
@@ -147,7 +163,24 @@ def generate_quiz():
                 presence_penalty=0
             )
 
-        quiz_data = json.loads(response.choices[0].message.content.strip())
+        generated_content = response.choices[0].message.content.strip()
+        
+        # Attempt to fix common JSON issues
+        generated_content = re.sub(r',\s*]', ']', generated_content)  # Remove trailing commas in arrays
+        generated_content = re.sub(r',\s*}', '}', generated_content)  # Remove trailing commas in objects
+        
+        try:
+            quiz_data = json.loads(generated_content)
+        except json.JSONDecodeError:
+            st.warning("Initial JSON parsing failed. Attempting to extract valid questions.")
+            # Extract valid questions using regex
+            pattern = r'\{\s*"question":\s*"[^"]*",\s*"answers":\s*\[(?:[^}]+\},?){4}\s*\]\s*\}'
+            valid_questions = re.findall(pattern, generated_content)
+            if valid_questions:
+                quiz_data = json.loads(f"[{','.join(valid_questions)}]")
+            else:
+                raise ValueError("No valid questions found in the response.")
+
         st.success(f"Successfully generated {len(quiz_data)} questions.")
         
         excel_buffer = save_to_excel(quiz_data)
@@ -162,9 +195,15 @@ def generate_quiz():
         st.session_state["quiz_data"] = quiz_data
 
     except json.JSONDecodeError:
-        st.error("Failed to parse the generated quiz. Please try again.")
+        st.error("Failed to parse the generated quiz. Please try again or adjust your input.")
+    except ValueError as ve:
+        st.error(f"Error: {str(ve)}")
     except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
+        st.error(f"An unexpected error occurred: {str(e)}")
+
+    # Display raw response for debugging (you can remove this in production)
+    with st.expander("Debug: Raw API Response"):
+        st.text(generated_content)
 
 if st.button("Generate Quiz"):
     generate_quiz()
