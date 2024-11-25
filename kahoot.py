@@ -126,7 +126,7 @@ def generate_quiz():
              f"Learning Objectives: {learning_objectives} " \
              f"Audience: {audience} " \
              f"Text/Topic: {text_input} " \
-             "Provide the output as a valid JSON array."
+             "Provide the output as a JSON array with 'question', 'answers' (array), and 'correct_answer' fields."
 
     if language == "Deutsch":
         prompt = f"Erstellen Sie ein Quiz basierend auf dem gegebenen Text/Thema und Bild (falls vorhanden). " \
@@ -136,7 +136,7 @@ def generate_quiz():
                  f"Lernziele: {learning_objectives} " \
                  f"Zielgruppe: {audience} " \
                  f"Text/Thema: {text_input} " \
-                 f"Geben Sie die Ausgabe als gültiges JSON-Array aus."
+                 f"Geben Sie die Ausgabe als JSON-Array mit den Feldern 'question', 'answers' (Array) und 'correct_answer' aus."
 
     messages = [
         {"role": "system", "content": "You are a quiz generator for Kahoot. Always respond with valid JSON."},
@@ -165,39 +165,39 @@ def generate_quiz():
 
         generated_content = response.choices[0].message.content.strip()
         
-        # Attempt to fix common JSON issues
-        generated_content = re.sub(r',\s*]', ']', generated_content)  # Remove trailing commas in arrays
-        generated_content = re.sub(r',\s*}', '}', generated_content)  # Remove trailing commas in objects
-        
         try:
-            quiz_data = json.loads(generated_content)
-        except json.JSONDecodeError:
-            st.warning("Initial JSON parsing failed. Attempting to extract valid questions.")
-            # Extract valid questions using regex
-            pattern = r'\{\s*"question":\s*"[^"]*",\s*"answers":\s*\[(?:[^}]+\},?){4}\s*\]\s*\}'
-            valid_questions = re.findall(pattern, generated_content)
-            if valid_questions:
-                quiz_data = json.loads(f"[{','.join(valid_questions)}]")
-            else:
-                raise ValueError("No valid questions found in the response.")
+            raw_quiz_data = json.loads(generated_content)
+            
+            # Convert the format to what we expect
+            quiz_data = []
+            for item in raw_quiz_data:
+                answers = item['answers']
+                correct_answer = item['correct_answer']
+                formatted_answers = [
+                    {"text": ans, "is_correct": (ans == correct_answer)}
+                    for ans in answers
+                ]
+                quiz_data.append({
+                    "question": item['question'],
+                    "answers": formatted_answers
+                })
 
-        st.success(f"Successfully generated {len(quiz_data)} questions.")
-        
-        excel_buffer = save_to_excel(quiz_data)
-        if excel_buffer:
-            st.download_button(
-                label="Download Quiz as Excel",
-                data=excel_buffer,
-                file_name="kahoot_quiz.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-        
-        st.session_state["quiz_data"] = quiz_data
+            st.success(f"Successfully generated {len(quiz_data)} questions.")
+            
+            excel_buffer = save_to_excel(quiz_data)
+            if excel_buffer:
+                st.download_button(
+                    label="Download Quiz as Excel",
+                    data=excel_buffer,
+                    file_name="kahoot_quiz.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            
+            st.session_state["quiz_data"] = quiz_data
 
-    except json.JSONDecodeError:
-        st.error("Failed to parse the generated quiz. Please try again or adjust your input.")
-    except ValueError as ve:
-        st.error(f"Error: {str(ve)}")
+        except (json.JSONDecodeError, KeyError) as e:
+            st.error(f"Failed to parse the generated quiz: {str(e)}")
+
     except Exception as e:
         st.error(f"An unexpected error occurred: {str(e)}")
 
