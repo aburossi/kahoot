@@ -144,6 +144,11 @@ api_key = st.text_input("OpenAI API Key:", type="password")
 # Add file uploader for images
 uploaded_file = st.file_uploader("Upload an image (optional)", type=["jpg", "jpeg", "png"])
 
+# Display uploaded image in a closed expander
+if uploaded_file:
+    with st.expander("View Uploaded Image", expanded=False):
+        st.image(uploaded_file, caption='Uploaded Image', use_column_width=True)
+
 # Text input
 text_input = st.text_area("Enter your text or topic:")
 
@@ -365,7 +370,7 @@ def generate_quiz():
 if st.button("Generate Quiz"):
     generate_quiz()
 
-# Edit and Save Quiz Data
+# Edit Quiz Data
 if "quiz_data" in st.session_state:
     quiz_data = st.session_state["quiz_data"]
 
@@ -383,27 +388,7 @@ if "quiz_data" in st.session_state:
             st.markdown(f'<p style="color:{color};">Character count: {char_count}/75</p>', unsafe_allow_html=True)
             st.checkbox(f"Correct Answer {idx+1}-{answer_idx+1}", value=answer["is_correct"], key=f"correct_{idx}_{answer_idx}")
 
-    if st.button("Save as JSON"):
-        quiz_data = [
-            {
-                "question": st.session_state[f"question_{idx}"],
-                "answers": [
-                    {
-                        "text": st.session_state[f"answer_{idx}_{answer_idx}"],
-                        "is_correct": st.session_state[f"correct_{idx}_{answer_idx}"]
-                    } for answer_idx in range(4)
-                ]
-            } for idx in range(len(quiz_data))
-        ]
-        json_data = json.dumps(quiz_data, indent=4)
-        json_buffer = StringIO(json_data)
-        st.download_button(
-            label="Download JSON",
-            data=json_buffer,
-            file_name="quiz.json",
-            mime="application/json"
-        )
-
+    # Save as Excel button
     if st.button("Save as Excel"):
         quiz_data = [
             {
@@ -423,7 +408,6 @@ if "quiz_data" in st.session_state:
             file_name="quiz.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-
 
         # Expander for next steps
         with st.expander("Next Steps"):
