@@ -270,7 +270,12 @@ def generate_quiz():
                 "role": "user",
                 "content": [
                     {"type": "text", "text": "Please also consider this image when generating the quiz:"},
-                    {"type": "image_url", "image_url": f"data:image/jpeg;base64,{image_content}"}
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{image_content}"
+                        }
+                    }
                 ]
             })
 
