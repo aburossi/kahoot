@@ -83,18 +83,40 @@ def extract_text_from_docx(file):
     text = "\n".join([para.text for para in doc.paragraphs])
     return text.strip()
 
-# Function to validate and fix JSON output
 def validate_and_fix_json(generated_quiz):
+    """Validate and fix JSON output from OpenAI."""
     try:
+        # Attempt to parse the raw JSON directly
         return json.loads(generated_quiz)
     except json.JSONDecodeError:
+        st.warning("Error parsing JSON. Attempting to extract valid snippets.")
+
+        # Remove invalid characters and attempt to fix common issues
         fixed_json = re.sub(r',\s*]', ']', generated_quiz)  # Fix trailing commas
-        fixed_json = re.sub(r',\s*}', '}', fixed_json)
-        try:
-            return json.loads(fixed_json)
-        except json.JSONDecodeError:
-            st.error("Unable to fix JSON parsing errors.")
-            return []
+        fixed_json = re.sub(r',\s*}', '}', fixed_json)  # Fix trailing commas in objects
+        fixed_json = re.sub(r'(?<=\})\s*,\s*(?=\})', '', fixed_json)  # Remove commas between objects
+        fixed_json = fixed_json.strip()
+
+        # Extract valid JSON objects using regex
+        pattern = r'\{\s*"question":\s*".+?",\s*"answers":\s*\[.+?\]\s*\}'
+        valid_snippets = re.findall(pattern, fixed_json)
+
+        if valid_snippets:
+            st.info(f"Extracted {len(valid_snippets)} valid questions from the response.")
+            try:
+                # Rebuild the JSON array from valid snippets
+                valid_json = "[" + ",".join(valid_snippets) + "]"
+                return json.loads(valid_json)
+            except json.JSONDecodeError:
+                st.error("Failed to parse extracted JSON snippets.")
+        else:
+            st.error("No valid JSON objects found in the response.")
+
+        # Display raw response for debugging
+        st.error("Original response could not be parsed:")
+        st.code(generated_quiz, language="json")
+
+        return []
 
 # Function to generate quiz from OpenAI response
 def generate_quiz(api_key, input_text, num_questions, model):
@@ -116,10 +138,13 @@ def generate_quiz(api_key, input_text, num_questions, model):
             ],
             max_tokens=1000,
         )
-        return response.choices[0].message.content
+        raw_response = response.choices[0].message.content
+        st.text_area("Raw Response from OpenAI", raw_response, height=300)  # Display raw response for debugging
+        return raw_response
     except Exception as e:
         st.error(f"Error generating quiz: {e}")
         return None
+
 
 # Streamlit UI
 st.title("Quiz Generator with File Uploads")
