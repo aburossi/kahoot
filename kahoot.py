@@ -112,89 +112,113 @@ model_options = {
 selected_model = model_options[st.selectbox("Select GPT Model:", list(model_options.keys()))]
 
 def generate_quiz():
+    text = text_input.strip()
+    num_questions_selected = int(num_questions)
+    learning_objectives_selected = learning_objectives.strip()
+    audience_selected = audience.strip()
+
     if not api_key:
         st.error("API Key cannot be empty")
         return
 
     client = OpenAI(api_key=api_key)
-    image_content = process_image(uploaded_file) if uploaded_file else None
-    
-    prompt = "Create a quiz based on the given text/topic and image (if provided). " \
-             f"Generate {num_questions} questions, each with four answers. " \
-             "Questions must not exceed 120 characters. " \
-             "Answers must not exceed 75 characters. " \
-             f"Learning Objectives: {learning_objectives} " \
-             f"Audience: {audience} " \
-             f"Text/Topic: {text_input} " \
-             "Provide the output as a JSON array with 'question', 'answers' (array), and 'correct_answer' fields."
 
-    messages = [
-        {"role": "system", "content": "You are a quiz generator for Kahoot. Always respond with valid JSON."},
-        {"role": "user", "content": prompt}
-    ]
+    # Prepare input text
+    input_text = f"""
+    Create a quiz based on the given text or topic. 
+    Create questions and four potential answers for each question. 
+    Ensure that each question does not exceed 120 characters 
+    VERY IMPORTANT: Ensure each answer remains within 75 characters. 
+    Follow these rules strictly:
+    1. Generate questions about the provided text or topic.
+    2. Create questions and answers in the same language as the input text.
+    3. Provide output in the specified JSON format.
+    4. Generate exactly {num_questions_selected} questions.
+    5. Learning Objectives: {learning_objectives_selected}
+    6. Audience: {audience_selected}
+    
+    Text or topic: {text}
+    """
+
+    # Count input tokens
+    input_tokens = count_tokens(input_text, selected_model)
+    
+    # Get max tokens for the selected model
+    max_tokens = get_max_tokens(selected_model)
+    
+    # Calculate available tokens for the response
+    available_tokens = max_tokens - input_tokens - 100  # Subtract 100 as a safety margin
+    available_tokens = max(0, available_tokens)  # Ensure available tokens is not negative
 
     try:
-        with st.spinner('Generating quiz...'):
-            response = client.chat.completions.create(
-                model=selected_model,
-                messages=messages,
-                temperature=0.7,
-                max_tokens=get_max_tokens(selected_model) - count_tokens(prompt, selected_model) - 100,
-                top_p=1,
-                frequency_penalty=0,
-                presence_penalty=0
-            )
+        # Call the OpenAI API
+        response = client.chat.completions.create(
+            model=selected_model,
+            messages=[
+                {"role": "system", "content": "You are a quiz generator for Kahoot. Always respond with valid JSON."},
+                {"role": "user", "content": input_text}
+            ],
+            temperature=0.7,
+            max_tokens=available_tokens,
+            top_p=1,
+            frequency_penalty=0,
+            presence_penalty=0
+        )
 
+        # Extract and clean the response
         generated_content = response.choices[0].message.content.strip()
-        
+
+        # Attempt to parse the JSON
         try:
-            # Clean and parse JSON
-            raw_json = generated_content.strip()
-            raw_quiz_data = json.loads(raw_json)  # Parse JSON content
+            quiz_data = json.loads(generated_content)
+        except json.JSONDecodeError:
+            st.warning("Error parsing JSON. Attempting to clean the response.")
+            # Clean common JSON issues
+            cleaned_content = re.sub(r',\s*]', ']', generated_content)  # Remove trailing commas
+            cleaned_content = re.sub(r',\s*}', '}', cleaned_content)  # Remove trailing commas in objects
 
-            # Validate JSON format
-            quiz_data = []
-            for item in raw_quiz_data:
-                if 'question' not in item or 'answers' not in item or 'correct_answer' not in item:
-                    continue  # Skip invalid entries
-                
-                answers = item['answers']
-                correct_answer = item['correct_answer']
-                formatted_answers = [
-                    {"text": ans, "is_correct": (ans == correct_answer)}
-                    for ans in answers
-                ]
-                quiz_data.append({
-                    "question": item['question'],
-                    "answers": formatted_answers
-                })
-
-            if not quiz_data:
-                st.error("No valid quiz questions generated.")
+            # Use regex to extract valid JSON objects
+            pattern = r'\{\s*"question":\s*"[^"]*",\s*"answers":\s*\[(?:[^}]+\},?){4}\s*\]\s*\}'
+            valid_items = re.findall(pattern, cleaned_content)
+            
+            if valid_items:
+                quiz_data = json.loads(f"[{','.join(valid_items)}]")
+                st.success(f"Extracted {len(quiz_data)} valid questions.")
+            else:
+                st.error("No valid questions found in the response.")
                 return
 
-            st.success(f"Successfully generated {len(quiz_data)} questions.")
-            
-            excel_buffer = save_to_excel(quiz_data)
-            if excel_buffer:
-                st.download_button(
-                    label="Download Quiz as Excel",
-                    data=excel_buffer,
-                    file_name="kahoot_quiz.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-            
-            st.session_state["quiz_data"] = quiz_data
+        # Validate and process the quiz data
+        processed_quiz_data = []
+        for item in quiz_data:
+            if 'question' in item and 'answers' in item:
+                question = item['question'][:120]
+                answers = item['answers'][:4]
+                while len(answers) < 4:
+                    answers.append({"text": "Placeholder answer", "is_correct": False})
+                processed_quiz_data.append({
+                    "question": question,
+                    "answers": [{"text": ans['text'][:75], "is_correct": ans['is_correct']} for ans in answers]
+                })
 
-        except json.JSONDecodeError as e:
-            st.error(f"Failed to parse the generated quiz: {str(e)}")
-            st.text(f"Raw API Response:\n{generated_content}")
+        if len(processed_quiz_data) != num_questions_selected:
+            st.warning(f"Generated {len(processed_quiz_data)} valid questions instead of {num_questions_selected}.")
+
+        # Save processed data to session state
+        st.session_state["quiz_data"] = processed_quiz_data
+
+        # Allow user to download the generated quiz
+        excel_buffer = save_to_excel(processed_quiz_data)
+        st.download_button(
+            label="Download Quiz as Excel",
+            data=excel_buffer,
+            file_name="kahoot_quiz.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
     except Exception as e:
-        st.error(f"An unexpected error occurred: {str(e)}")
+        st.error(f"An error occurred: {str(e)}")
 
-    except Exception as e:
-        st.error(f"An unexpected error occurred: {str(e)}")
 
     # Display raw response for debugging (you can remove this in production)
     with st.expander("Debug: Raw API Response"):
