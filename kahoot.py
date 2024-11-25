@@ -1,146 +1,165 @@
 import streamlit as st
-import PyPDF2
-import docx
-from PIL import Image
-from io import BytesIO
-import openpyxl
-import random
-import logging
+from openai import OpenAI
 import json
+import random
+import pandas as pd
+import openpyxl
+import re
+from io import BytesIO, StringIO
+from PIL import Image
+import base64
+import PyPDF2
+from pdf2image import convert_from_bytes
 
-logging.basicConfig(level=logging.INFO)
-
+# Helper function to save quiz data to Excel
 def save_to_excel(quiz_data):
-    """Saves quiz data to an Excel file."""
     output = BytesIO()
     wb = openpyxl.Workbook()
     sheet = wb.active
-    sheet.append(["Question", "Answer 1", "Answer 2", "Answer 3", "Answer 4", "Time", "Correct"])
+
+    header = ["Question", "Answer 1", "Answer 2", "Answer 3", "Answer 4", "Time", "Correct"]
+    sheet.append(header)
+
     for question in quiz_data:
-        answers = question["answers"]
-        random.shuffle(answers)
-        correct_index = next((i for i, ans in enumerate(answers) if ans["is_correct"]), None)
+        answers = question['answers']
+        random.shuffle(answers)  # Randomize the order of answers
+        correct_index = next((i for i, ans in enumerate(answers) if ans['is_correct']), None)
+
         if correct_index is None:
             st.error("No correct answer specified for a question.")
             return
-        sheet.append([
-            question["question"],
-            answers[0]["text"],
-            answers[1]["text"],
-            answers[2]["text"],
-            answers[3]["text"],
-            "20",
-            correct_index + 1
-        ])
+
+        row = [
+            question['question'],
+            answers[0]['text'],
+            answers[1]['text'],
+            answers[2]['text'],
+            answers[3]['text'],
+            "20",  # Default time
+            correct_index + 1  # +1 because Excel is 1-indexed
+        ]
+        sheet.append(row)
+
     wb.save(output)
     output.seek(0)
     return output
 
-@st.cache_data
+# Function to process uploaded images and prepare for API
+def process_image(image_file):
+    """Convert an image to base64 for OpenAI API"""
+    img = Image.open(image_file)
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    max_size = 1000
+    if max(img.size) > max_size:
+        img.thumbnail((max_size, max_size))
+    img_byte_arr = BytesIO()
+    img.save(img_byte_arr, format='JPEG')
+    img_byte_arr = img_byte_arr.getvalue()
+    return base64.b64encode(img_byte_arr).decode('utf-8')
+
+# Function to extract text from PDFs
 def extract_text_from_pdf(file):
-    """Extracts text from a PDF file."""
-    try:
-        pdf_reader = PyPDF2.PdfReader(file)
-        return "".join(page.extract_text() or "" for page in pdf_reader.pages).strip()
-    except Exception as e:
-        logging.error(f"Error extracting text from PDF: {e}")
-        return ""
+    """Extract text from PDF"""
+    reader = PyPDF2.PdfReader(file)
+    text = ""
+    for page in reader.pages:
+        page_text = page.extract_text()
+        if page_text:
+            text += page_text
+    return text.strip()
 
-@st.cache_data
+# Function to convert PDF to images
+def convert_pdf_to_images(file):
+    """Convert PDF pages to images"""
+    images = convert_from_bytes(file.read())
+    return images
+
+# Function to extract text from DOCX files
 def extract_text_from_docx(file):
-    """Extracts text from a DOCX file."""
+    """Extract text from DOCX"""
+    from docx import Document
+    doc = Document(file)
+    text = "\n".join([para.text for para in doc.paragraphs])
+    return text.strip()
+
+# Function to validate and fix JSON output
+def validate_and_fix_json(generated_quiz):
     try:
-        doc = docx.Document(file)
-        return "\n".join(paragraph.text for paragraph in doc.paragraphs).strip()
-    except Exception as e:
-        logging.error(f"Error extracting text from DOCX: {e}")
-        return ""
+        return json.loads(generated_quiz)
+    except json.JSONDecodeError:
+        fixed_json = re.sub(r',\s*]', ']', generated_quiz)  # Fix trailing commas
+        fixed_json = re.sub(r',\s*}', '}', fixed_json)
+        try:
+            return json.loads(fixed_json)
+        except json.JSONDecodeError:
+            st.error("Unable to fix JSON parsing errors.")
+            return []
 
-def main():
-    """Main function for the Streamlit app."""
-    st.set_page_config(page_title="Quiz Generator", layout="wide")
+# Function to generate quiz from OpenAI response
+def generate_quiz(api_key, input_text, num_questions, model):
+    client = OpenAI(api_key=api_key)
 
-    # Title
-    st.title("📝 Quiz Generator")
+    prompt = f"""
+    Create a quiz based on the given text. 
+    Generate {num_questions} questions, each with four possible answers, one of which is correct.
+    Format the output as a JSON array. Ensure each answer text is concise and suitable for Kahoot.
+    Text: {input_text}
+    """
 
-    # Sidebar: Only video
-    with st.sidebar:
-        st.markdown("### Watch the Demo Video")
-        st.components.v1.html("""
-            <iframe width="100%" height="180" src="https://www.youtube.com/embed/NsTAjBdHb1k" 
-            title="Demo Video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; 
-            encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-        """, height=180)
-
-    # File uploader
-    st.header("Upload Files")
-    uploaded_files = st.file_uploader(
-        "Upload PDF, DOCX, or image files:",
-        type=["pdf", "docx", "png", "jpg", "jpeg"],
-        accept_multiple_files=True
-    )
-
-    combined_text = ""
-
-    if uploaded_files:
-        st.subheader("Processing Files")
-        for uploaded_file in uploaded_files:
-            file_extension = uploaded_file.name.split('.')[-1].lower()
-            if file_extension == "pdf":
-                text = extract_text_from_pdf(uploaded_file)
-                combined_text += f"\n{text}"
-                st.success(f"Extracted text from {uploaded_file.name}")
-            elif file_extension == "docx":
-                text = extract_text_from_docx(uploaded_file)
-                combined_text += f"\n{text}"
-                st.success(f"Extracted text from {uploaded_file.name}")
-            elif file_extension in ["png", "jpg", "jpeg"]:
-                image = Image.open(uploaded_file)
-                st.image(image, caption=uploaded_file.name)
-                st.info(f"Uploaded image: {uploaded_file.name}")
-            else:
-                st.error(f"Unsupported file type: {uploaded_file.name}")
-
-    # Text input
-    st.header("Provide Text or Topic")
-    user_text = st.text_area("Enter your text or topic:", height=200)
-    combined_text += f"\n{user_text.strip()}"
-
-    if combined_text.strip():
-        st.header("Preview of Combined Text")
-        st.text_area("Extracted and Entered Text:", combined_text, height=200)
-
-    # Quiz generation logic placeholder
-    st.header("Generate Quiz")
-    num_questions = st.selectbox("Number of Questions:", list(range(1, 11)))
-    if st.button("Generate Quiz"):
-        if combined_text.strip():
-            st.success(f"Quiz generated with {num_questions} questions.")
-            # Placeholder for quiz generation logic
-            st.write("Quiz generation functionality goes here.")
-        else:
-            st.error("No text provided for quiz generation.")
-
-    # Placeholder for downloading quiz data
-    if st.button("Download Quiz as Excel"):
-        dummy_quiz_data = [
-            {
-                "question": "Sample Question?",
-                "answers": [
-                    {"text": "Option A", "is_correct": False},
-                    {"text": "Option B", "is_correct": False},
-                    {"text": "Option C", "is_correct": True},
-                    {"text": "Option D", "is_correct": False}
-                ]
-            }
-        ]
-        excel_file = save_to_excel(dummy_quiz_data)
-        st.download_button(
-            label="Download Excel File",
-            data=excel_file,
-            file_name="quiz.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": "You are specialized in generating Kahoot quizzes."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=1000,
         )
+        return response.choices[0].message.content
+    except Exception as e:
+        st.error(f"Error generating quiz: {e}")
+        return None
 
-if __name__ == "__main__":
-    main()
+# Streamlit UI
+st.title("Quiz Generator with File Uploads")
+
+api_key = st.text_input("OpenAI API Key", type="password")
+uploaded_file = st.file_uploader("Upload a PDF, DOCX, or Image", type=["pdf", "docx", "jpg", "jpeg", "png"])
+
+text_content = None
+image_base64 = None
+
+if uploaded_file:
+    if uploaded_file.type == "application/pdf":
+        text_content = extract_text_from_pdf(uploaded_file)
+        if not text_content:
+            images = convert_pdf_to_images(uploaded_file)
+            st.image(images, caption="PDF pages as images", use_column_width=True)
+    elif uploaded_file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        text_content = extract_text_from_docx(uploaded_file)
+    elif uploaded_file.type.startswith("image/"):
+        image_base64 = process_image(uploaded_file)
+
+if text_content:
+    st.text_area("Extracted Text", text_content)
+elif image_base64:
+    st.success("Image processed for API input.")
+
+num_questions = st.number_input("Number of Questions", min_value=1, max_value=12, value=5)
+model = st.selectbox("Model", ["gpt-4o", "gpt-4o-mini"])
+
+if st.button("Generate Quiz"):
+    if not api_key:
+        st.error("Please enter your OpenAI API Key")
+    elif not (text_content or image_base64):
+        st.error("Please upload a file or provide input text.")
+    else:
+        input_data = text_content or f"Image input: {image_base64}"
+        quiz_json = generate_quiz(api_key, input_data, num_questions, model)
+        quiz_data = validate_and_fix_json(quiz_json)
+
+        if quiz_data:
+            st.session_state["quiz_data"] = quiz_data
+            excel_data = save_to_excel(quiz_data)
+            st.download_button("Download Quiz as Excel", data=excel_data, file_name="quiz.xlsx")
