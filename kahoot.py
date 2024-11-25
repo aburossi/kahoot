@@ -12,7 +12,7 @@ import base64
 
 # Helper function to save quiz data to Excel
 def save_to_excel(quiz_data):
-    output = io.BytesIO()
+    output = BytesIO()
     wb = openpyxl.Workbook()
     sheet = wb.active
 
