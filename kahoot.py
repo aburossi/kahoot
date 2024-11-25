@@ -26,7 +26,7 @@ def save_to_excel(quiz_data):
 
         if correct_index is None:
             st.error("No correct answer specified for a question.")
-            return None
+            return
 
         row = [
             question['question'],
@@ -417,16 +417,13 @@ if "quiz_data" in st.session_state:
             } for idx in range(len(quiz_data))
         ]
         excel_buffer = save_to_excel(quiz_data)
-        
-        if excel_buffer is not None:
-            st.download_button(
-                label="Download Excel",
-                data=excel_buffer,
-                file_name="quiz.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-        else:
-            st.error("Failed to generate Excel file. Please check your quiz data.")
+        st.download_button(
+            label="Download Excel",
+            data=excel_buffer,
+            file_name="quiz.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
 
         # Expander for next steps
         with st.expander("Next Steps"):
