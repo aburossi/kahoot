@@ -83,7 +83,7 @@ def extract_text_from_docx(file):
     text = "\n".join([para.text for para in doc.paragraphs])
     return text.strip()
 
-ddef validate_and_fix_json(generated_quiz):
+def validate_and_fix_json(generated_quiz):
     """Validate and fix JSON output from OpenAI."""
     try:
         # Parse the raw JSON directly
