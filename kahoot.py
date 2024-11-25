@@ -163,7 +163,11 @@ def generate_quiz():
                 presence_penalty=0
             )
 
-        generated_content = response.choices[0].message.content.strip()
+            generated_content = response.choices[0].message.content
+            if not generated_content:
+                st.error("Empty response from API")
+                return
+            generated_content = generated_content.strip()
         
         try:
             raw_quiz_data = json.loads(generated_content)
