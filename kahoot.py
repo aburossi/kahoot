@@ -66,6 +66,8 @@ def process_image(image):
 
 st.title("Kahoot Quiz Generator")
 
+st.markdown("After generation, please scroll down to the bottom of the page for the save and download buttons.") 
+
 # Create two columns
 col1, col2 = st.columns(2)
 
